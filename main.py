@@ -535,16 +535,16 @@ async def post_api_command(command: str, session_id = Depends(get_session_id)):
 
 # ------- example
 
-@app.get("/users/me/", response_model=User, tags=['__fast api example'])
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    return current_user
+# @app.get("/users/me/", response_model=User, tags=['__fast api example'])
+# async def read_users_me(current_user: User = Depends(get_current_active_user)):
+#     return current_user
 
 
-@app.get("/users/me/items/",  tags=['__fast api example'])
-async def read_own_items(current_user: User = Depends(get_current_active_user)):
-    return [{"item_id": "Foo", "owner": current_user.username}]
+# @app.get("/users/me/items/",  tags=['__fast api example'])
+# async def read_own_items(current_user: User = Depends(get_current_active_user)):
+#     return [{"item_id": "Foo", "owner": current_user.username}]
 
 
-@app.post("/items/",  tags=['__fast api example'])
-async def create_item(item: Item):
-    return item
+# @app.post("/items/",  tags=['__fast api example'])
+# async def create_item(item: Item):
+#     return item
