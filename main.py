@@ -18,12 +18,41 @@ from fastapi import Path, Header
 import pandas as pd
 import numpy as np
 
+from schemas import *
+
 # to get a string like this run:
 # openssl rand -hex 32
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+app = FastAPI(
+    title="SHOP",
+    description="SHOP RESTful, SINTEF Energy",
+    version="0.1.0",
+    openapi_tags=[
+        {
+            'name': 'Authentication',
+            'description': 'Not required during development - Used to authenticate user.',
+        },
+        {
+            'name': 'Session',
+            'description': 'All model objects and operations are tied to a Session'
+        },
+        {
+            'name': 'Model',
+            'description': 'The model of a given Session. Use this endpoint to create, read, update, destroy model objects',
+        },
+        {
+            'name': 'Time Resolution',
+            'description': 'Specify the time resolution for the optimization problem',
+        },
+        {
+            'name': 'Connection',
+            'description': 'Configure connections between model objects',
+        }
+    ]
+)
 
 fake_users_db = {
     "johndoe": {
@@ -45,74 +74,9 @@ test_user = 'test_user'
 SessionManager.add_user_session('test_user', None)
 SessionManager.add_shop_session(test_user)
 
-dummy_user = '__dummy_user__'
-SessionManager.add_user_session('__dummy_user__', None)
-SessionManager.add_shop_session(dummy_user)
-
-class StrEnum(str, Enum):
-    pass
-
-ObjectTypeEnum = StrEnum(
-    'ObjectTypeEnum',
-    names={
-        name: name for name in SessionManager.get_shop_session(dummy_user, 1).model._all_types
-    }
-)
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
-
-
-class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: Optional[bool] = None
-
-
-class UserInDB(User):
-    hashed_password: str
-
-
-class Item(BaseModel):
-    name: str
-    description: Optional[str] = None
-    price: float
-    tax: Optional[float] = None
-
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-app = FastAPI(
-    title="SHOP",
-    description="REST-SHOP, SINTEF Energy",
-    version="0.1.0",
-    openapi_tags=[
-        {
-            'name': 'Session',
-            'description': 'All model objects and operations are tied to a Session'
-        },
-        {
-            'name': 'Model',
-            'description': 'The model of a given Session. Use this endpoint to create, read, update, destroy model objects',
-        },
-        {
-            'name': 'Time Resolution',
-            'description': 'Specify the time resolution for the optimization problem',
-        },
-        {
-            'name': 'Connection',
-            'description': 'Configure connections between model objects',
-        }
-    ]
-)
 
 
 def verify_password(plain_password, hashed_password):
@@ -194,71 +158,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-
-# ------ pandas-like schemas
-
-class Series(BaseModel):
-
-    name: Optional[str] = None
-    index: List[str]
-    values: List[str]
-
-def array_to_list_str(array: np.array) -> List[str]:
-    
-    # convert pandas series and index object to array
-    if isinstance(array, pd.Series) or isinstance(array, pd.Index):
-        array = array.values
-    
-    # convert timestamps to ISO timestamps
-    if type(array[0]) == np.datetime64 or type(array[0]) == pd.Timestamp:
-        list(pd.to_datetime(array).strftime("%Y-%m-%dT%H:%M:%S.%fZ"))
-    
-    # convert numpy array to list
-    return list(array.astype(str))
-
-    
-def Series_from_pd(series: pd.Series) -> Series:
-
-    if series is None or len(series) == 0:
-        return None
-
-    return Series(**{
-        'name': series.name,
-        'index': array_to_list_str(series.index),
-        'values': array_to_list_str(series.values)
-    })
-
-class DataFrame(BaseModel):
-
-    name: Optional[str] = None
-    columns: Dict[str, List[str]]
-    dataframe_index: List[str]
-
-def DataFrame_from_pd(data_frame: pd.DataFrame) -> DataFrame:
-    
-    if data_frame is None or len(df) == 0:
-        return None
-
-    columns = {
-        c_name: array_to_list_str(data_frame[c_name]) for c_name in data_frame.columns
-    }
-
-    return DataFrame(**{
-        'name': data_frame[data_frame.columns[0]].name,
-        'columns': columns,
-        'data_frame_index': array_to_list_str(data_frame.index),
-    })
-
-# @app.get("/test/{path_var}", tags=['Test'])
-# async def path_test(path_var: PathVar):
-#     pass
-
 # ------- session
-
-class Session(BaseModel):
-    session_id: int = Field(1, description="unique session identifier per user session")
-    example_option: Optional[str] = None
-
 
 @app.get("/sessions", response_model=List[Session], tags=['Session'])
 async def get_sessions():
@@ -278,7 +178,6 @@ async def get_session(session_id: int):
 async def create_session(session: Session):
     session_id = SessionManager.add_shop_session(test_user)
     return Session(**{"session_id": session_id})
-
 
 
 # --------- time_resolution
@@ -320,51 +219,26 @@ async def get_time_resolution(session_id = Depends(get_session_id)):
 
 # ------ model
 
-class Model(BaseModel):
-    object_types: List[str] = Field(description='list of implemented model object types')
-
-
-@app.get("/model", response_model=Model, tags=['Model'])
+@app.get("/model", response_model=Model, response_model_exclude_unset=True, tags=['Model'])
 async def get_model_object_types(session_id = Depends(get_session_id)):
     types = list(SessionManager.get_shop_session(test_user, session_id, raises=True).model._all_types)
     return Model(**{'object_types': types})
 
 # ------ object_type
 
-class ObjectAttributeType(str, Enum):
-    txy = 'txy'
-    double = 'double'
-    int = 'int'
-    xy_array = 'xy_array'
-    xy = 'xy'
-
-class ObjectAttribute(BaseModel):
-    attribute_name: str
-    attribute_type: ObjectAttributeType
-    value: Any = {}
-
-class ObjectInstance(BaseModel):
-    object_name: str
-    object_type: str
-    attributes: Dict[str, ObjectAttribute] = Field(dict(), description='field to contain data associated with the instance')
-
-class ObjectType(BaseModel):
-    object_type: str = Field(description='name of the object_type')
-    instances: List[str] = Field(description='list of instances of this type')
-    attributes: List[ObjectAttribute] = Field(description='list of attributes that can be set on the given object_type')
-
-
-@app.get("/model/{object_type}", response_model=ObjectType, tags=['Model'])
-async def get_model_object_instances(object_type: ObjectTypeEnum, session_id = Depends(get_session_id)):
+@app.get("/model/{object_type}", response_model=ObjectType, response_model_exclude_unset=True, tags=['Model'])
+async def get_model_object_type_information(object_type: ObjectTypeEnum, session_id = Depends(get_session_id)):
     ot = SessionManager.get_model_object_type(test_user, session_id, object_type)
     instances = list(ot.get_object_names())
     sess = SessionManager.get_shop_session(test_user, session_id, raises=True)
-    attribute_names = list(sess.shop_api.GetObjectTypeAttributeNames(object_type))
-    attribute_types = list(sess.shop_api.GetObjectTypeAttributeDatatypes(object_type))
-    attributes = [ObjectAttribute(**{
-        'attribute_name': n,
-        'attribute_type': t
-    }) for n, t in zip(attribute_names, attribute_types)]
+    attribute_names: List[str] = list(sess.shop_api.GetObjectTypeAttributeNames(object_type))
+    attribute_types: List[str] = list(sess.shop_api.GetObjectTypeAttributeDatatypes(object_type))
+    attributes = {
+        n: ObjectAttribute(**{
+            'attribute_name': n,
+            'attribute_type': new_attribute_type_name_from_old(t),
+        }) for n, t in zip(attribute_names, attribute_types)
+    }
 
     return ObjectType(**{
         'object_type': object_type,
@@ -374,30 +248,7 @@ async def get_model_object_instances(object_type: ObjectTypeEnum, session_id = D
 
 # ------ object_name
 
-def serialize_model_object_attribute(attribute: Any) -> ObjectAttribute:
-    attribute_type = attribute.info()['datatype']
-    attribute_name = attribute._attr_name
-    return ObjectAttribute(**{
-        'attribute_name': attribute_name,
-        'attribute_type': attribute_type,
-        'value' : str(attribute.get())
-    })
-
-@app.get("/model/{object_type}/{object_name}", response_model=ObjectInstance, tags=['Model'])
-async def get_model_object_attributes(object_type: ObjectTypeEnum, object_name: str, session_id = Depends(get_session_id)):
-
-    o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
-    attribute_names = list(o._attr_names)
-
-    return ObjectInstance(**{
-        'object_type': o.get_type(),
-        'object_name': o.get_name(),
-        'attributes': {
-            name: serialize_model_object_attribute((getattr(o, name))) for name in attribute_names
-        }
-    })
-
-@app.put("/model/{object_type}/{object_name}", response_model=ObjectInstance, tags=['Model'])
+@app.put("/model/{object_type}/{object_name}", response_model=ObjectInstance, response_model_exclude_unset=True, tags=['Model'])
 async def create_or_modify_existing_model_object(object_type: ObjectTypeEnum, object_name: str, instance: ObjectInstance = None, session_id = Depends(get_session_id)):
     
     session = SessionManager.get_shop_session(test_user, session_id, raises=True)
@@ -413,54 +264,71 @@ async def create_or_modify_existing_model_object(object_type: ObjectTypeEnum, ob
 
     model_object = session.model[object_type][object_name]
 
-    for (k,v) in instance.attributes.items():
+    if instance.attributes:
+        for (k,v) in instance.attributes.items():
 
-        datatype = model_object[k].info()['datatype']
+            try:
+                datatype = model_object[k].info()['datatype']
+            except Exception as e:
+                http_raise_internal(f'unknown object_attribute {{{k}}} for object_type {{{object_type}}}', e)
 
-        try:
-            if datatype == 'txy':
-                # ser = pd.Series(json.loads(v.replace('\'', '\"')))
-                # ser.index = pd.to_datetime(ser.index)
-                # ser = ser.tz_localize(None)
-                # model_object[k].set(ser)
-                print(f'dtype = {datatype}')
+            try:
+                if datatype == 'txy':
+                    # ser = pd.Series(json.loads(v.replace('\'', '\"')))
+                    # ser.index = pd.to_datetime(ser.index)
+                    # ser = ser.tz_localize(None)
+                    # model_object[k].set(ser)
+                    print(f'dtype = {datatype}')
 
-            elif datatype == 'xy':
-                # ser = pd.Series(json.loads(v.replace('\'', '\"')))
-                # ser.index = list(map(float, ser.index))
-                # ret = model_object[k].set(ser)
-                # print(ret)
-                print(f'dtype = {datatype}')
+                elif datatype == 'xy':
+                    # ser = pd.Series(json.loads(v.replace('\'', '\"')))
+                    # ser.index = list(map(float, ser.index))
+                    # ret = model_object[k].set(ser)
+                    # print(ret)
+                    print(f'dtype = {datatype}')
 
-            elif datatype == 'xy_array':
-                # ser_arr = []
-                # arr = json.loads(v.replace('\'', '\"'))
-                # for name, data in arr.items():
-                #     ser = pd.Series(data)
-                #     ser.name = name
-                #     ser_arr.append(ser)
-                # model_object[k].set(ser_arr)
-                print(f'dtype = {datatype}')
-                
-            elif datatype == 'double':
-                # model_object[k].set(float(v))
-                print(f'dtype = {datatype}')
+                elif datatype == 'xy_array':
+                    # ser_arr = []
+                    # arr = json.loads(v.replace('\'', '\"'))
+                    # for name, data in arr.items():
+                    #     ser = pd.Series(data)
+                    #     ser.name = name
+                    #     ser_arr.append(ser)
+                    # model_object[k].set(ser_arr)
+                    print(f'dtype = {datatype}')
+                    
+                elif datatype == 'double':
+                    # model_object[k].set(float(v))
+                    print(f'dtype = {datatype}')
 
-            elif datatype == 'int':
-               # model_object[k].set(int(v))
-                print(f'dtype = {datatype}')
+                elif datatype == 'int':
+                # model_object[k].set(int(v))
+                    print(f'dtype = {datatype}')
 
-            else:
-                # model_object[k].set(json.loads(v))
-                print(f'dtype = {datatype}')
+                else:
+                    # model_object[k].set(json.loads(v))
+                    print(f'dtype = {datatype}')
 
-        except:
-            HTTPException(400, f'Wrong attribute name {k} or invalid attribute value {v}')
+            except:
+                HTTPException(400, f'Wrong attribute name {k} or invalid attribute value {v}')
 
     return ObjectInstance(**{
         'object_type': object_type,
         'object_name': object_name,
-        'attributes': {}
+    })
+
+@app.get("/model/{object_type}/{object_name}", response_model=ObjectInstance, tags=['Model'])
+async def get_model_object_attributes(object_type: ObjectTypeEnum, object_name: str, session_id = Depends(get_session_id)):
+
+    o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
+    attribute_names = list(o._attr_names)
+
+    return ObjectInstance(**{
+        'object_type': o.get_type(),
+        'object_name': o.get_name(),
+        'attributes': {
+            name: serialize_model_object_attribute((getattr(o, name))) for name in attribute_names
+        }
     })
 
 # ------ attribute
@@ -478,14 +346,6 @@ async def get_attribute(object_type: ObjectTypeEnum, object_name: str, attribute
 
 # ------ connection
 
-class Connection(BaseModel):
-    from_type: str = Field(description="type of object to connect from")
-    from_name: str = Field(description="name of object to connect from")
-    to_type: str = Field(description="type of object to connect to")
-    to_name: str = Field(description="name of object to connect to")
-    relation_type: str = Field(desription="relation type")
-
-
 @app.get("/connection", response_model=List[Connection], tags=['Connection'])
 async def get_connection(session_id = Depends(get_session_id)):
     return Connection
@@ -496,41 +356,29 @@ async def add_connection(connections: List[Connection] = None, session_id = Depe
 
 # ------ commands
 
-class Commands(BaseModel):
-    commands: List[str] = Field(description="list of commands")
-
-class CommandStatus(BaseModel):
-    message: str
-    error: Optional[str] = None
-
-@app.post("/commands", response_model=CommandStatus, tags=['__internals'])
+@app.post("/internal/commands", response_model=CommandStatus, tags=['__internals'])
 async def post_list_of_api_commands(commands: Commands = None, session_id = Depends(get_session_id)):
     return CommandStatus(**{'message': 'ok'})
 
 # ------ view_show_api
 
-class ApiCommands(BaseModel):
-    command_types: List[str] = None
-
-@app.get("/shop_api", response_model=ApiCommands, tags=['__internals'])
+@app.get("/internal/commands", response_model=ApiCommands, tags=['__internals'])
 async def get_available_api_commands(session_id = Depends(get_session_id)):
-    return ApiCommands(**{'command_types': ['foo', 'bar']})
+    shopsession = SessionManager.get_shop_session(test_user, session_id)
+    command_types = shopsession.shop_api.__dir__()
+    command_types = list(filter(lambda x: x[0] != '_', command_types))
+    return ApiCommands(**{'command_types': command_types})
 
 # ------ call_shop_api
 
-class ApiCommandArgs(BaseModel):
-    args: tuple
-    kwargs: dict
+@app.get("/internal/command/{command}", response_model=ApiCommandDescription, tags=['__internals'])
+async def get_api_command_description(command: ApiCommandEnum, session_id = Depends(get_session_id)):
+    shopsession = SessionManager.get_shop_session(test_user, session_id)
+    doc = getattr(shopsession.shop_api, command).__doc__
+    return ApiCommandDescription(**{'description': str(doc)})
 
-class ApiCommandDescription(BaseModel):
-    description: str
-
-@app.get("/shop_api/{command}", response_model=ApiCommandDescription, tags=['__internals'])
-async def get_api_command_description(command: str, session_id = Depends(get_session_id)):
-    return ApiCommandDescription(**{'description': 'hello world'})
-
-@app.post("/shop_api/{command}", response_model=CommandStatus, tags=['__internals'])
-async def post_api_command(command: str, session_id = Depends(get_session_id)):
+@app.post("/internal/command/{command}", response_model=CommandStatus, tags=['__internals'])
+async def post_api_command(command: ApiCommandEnum, session_id = Depends(get_session_id)):
     return CommandStatus(**{'message': 'ok'})
 
 # ------- example
