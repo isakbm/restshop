@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional, List, Union, Any, Dict
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Body, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from jose import JWTError, jwt
@@ -40,15 +40,15 @@ app = FastAPI(
             'description': 'All model objects and operations are tied to a Session'
         },
         {
-            'name': 'Model',
-            'description': 'The model of a given Session. Use this endpoint to create, read, update, destroy model objects',
-        },
-        {
             'name': 'Time Resolution',
             'description': 'Specify the time resolution for the optimization problem',
         },
         {
-            'name': 'Connection',
+            'name': 'Model',
+            'description': 'The model of a given Session. Use this endpoint to create, read, update, destroy model objects',
+        },
+        {
+            'name': 'Connections',
             'description': 'Configure connections between model objects',
         }
     ]
@@ -69,6 +69,12 @@ def http_raise_internal(msg: str, e: Exception):
 
 def get_session_id(session_id: int = Header(1)) -> int:
     return session_id
+
+def check_that_time_resolution_is_set(session_id: int = Depends(get_session_id)):
+    is_set = SessionManager.get_user_session(test_user).shopsessions_time_resolution_is_set[session_id]
+    if is_set == False:
+        raise HTTPException(400, 'First you must set the time_resolution of the session')
+    
 
 test_user = 'test_user'
 SessionManager.add_user_session('test_user', None)
@@ -166,8 +172,8 @@ async def get_sessions():
     return sessions
 
 
-@app.get("/session/{session_id}", response_model=Session, tags=['Session'])
-async def get_session(session_id: int):
+@app.get("/session", response_model=Session, tags=['Session'])
+async def get_session(session_id: int = Query(1)):
     if session_id in SessionManager.list_shop_sessions(test_user):
         return Session(**{"session_id": session_id})
     else:
@@ -190,16 +196,38 @@ class TimeResolution(BaseModel):
 
 
 @app.put("/time_resolution", tags=["Time Resolution"])
-async def set_time_resolution(time_resolution: TimeResolution, session_id = Depends(get_session_id)):
+async def set_time_resolution(
+    time_resolution: TimeResolution = Body(
+        ...,
+        example={
+            "start_time": "2021-05-02T00:00:00.00Z",
+            "end_time": "2021-05-03T00:00:00.00Z",
+            "time_unit": "hour"
+        }
+    ),
+    session_id = Depends(get_session_id)):
+
+    # validate
+    start = pd.Timestamp(time_resolution.start_time)
+    end = pd.Timestamp(time_resolution.end_time)
+
+    if (end <= start):
+        raise HTTPException(400, 'end_time must be strictly greater than start_time')
+
     SessionManager.get_shop_session(test_user, session_id, raises=True).set_time_resolution(
         starttime=time_resolution.start_time,
         endtime=time_resolution.end_time,
         timeunit=time_resolution.time_unit # TODO: also use time_resolution series
     )
+
+
+    # store the fact that time_resolution has been set
+    us = SessionManager.get_user_session(test_user)
+    us.shopsessions_time_resolution_is_set[session_id] = True
     return None
 
 
-@app.get("/time_resolution", response_model=TimeResolution, tags=["Time Resolution"])
+@app.get("/time_resolution", response_model=TimeResolution, dependencies=[Depends(check_that_time_resolution_is_set)], tags=["Time Resolution"])
 async def get_time_resolution(session_id = Depends(get_session_id)):
 
     try:
@@ -226,7 +254,7 @@ async def get_model_object_types(session_id = Depends(get_session_id)):
 
 # ------ object_type
 
-@app.get("/model/{object_type}", response_model=ObjectType, response_model_exclude_unset=True, tags=['Model'])
+@app.get("/model/{object_type}/type_information", response_model=ObjectType, response_model_exclude_unset=True, tags=['Model'])
 async def get_model_object_type_information(object_type: ObjectTypeEnum, session_id = Depends(get_session_id)):
     ot = SessionManager.get_model_object_type(test_user, session_id, object_type)
     instances = list(ot.get_object_names())
@@ -248,8 +276,26 @@ async def get_model_object_type_information(object_type: ObjectTypeEnum, session
 
 # ------ object_name
 
-@app.put("/model/{object_type}/{object_name}", response_model=ObjectInstance, response_model_exclude_unset=True, tags=['Model'])
-async def create_or_modify_existing_model_object(object_type: ObjectTypeEnum, object_name: str, instance: ObjectInstance = None, session_id = Depends(get_session_id)):
+@app.put("/model/{object_type}",
+    response_model=ObjectInstance, dependencies=[Depends(check_that_time_resolution_is_set)],
+    response_model_exclude_unset=True, tags=['Model'])
+async def create_or_modify_existing_model_object_instance(
+    object_type: ObjectTypeEnum,
+    object_name: str = Query('example_reservoir'),
+    instance: ObjectInstance = Body(
+        None,
+        example={
+            'attributes': {
+                'inflow': TimeSeries(**{
+                    'name': 'flow',
+                    'timestamp': ['2020-01-01T00:00:00' ],
+                    'values': [ [ 42.0 ] ]
+                })
+            }
+        }
+    ),
+    session_id = Depends(get_session_id)
+    ):
     
     session = SessionManager.get_shop_session(test_user, session_id, raises=True)
     try:
@@ -312,73 +358,56 @@ async def create_or_modify_existing_model_object(object_type: ObjectTypeEnum, ob
             except:
                 HTTPException(400, f'Wrong attribute name {k} or invalid attribute value {v}')
 
-    return ObjectInstance(**{
-        'object_type': object_type,
-        'object_name': object_name,
-    })
-
-@app.get("/model/{object_type}/{object_name}", response_model=ObjectInstance, tags=['Model'])
-async def get_model_object_attributes(object_type: ObjectTypeEnum, object_name: str, session_id = Depends(get_session_id)):
-
     o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
-    attribute_names = list(o._attr_names)
+    return serialize_model_object_instance(o)
 
-    return ObjectInstance(**{
-        'object_type': o.get_type(),
-        'object_name': o.get_name(),
-        'attributes': {
-            name: serialize_model_object_attribute((getattr(o, name))) for name in attribute_names
-        }
-    })
-
-# ------ attribute
-
-@app.get("/model/{object_type}/{object_name}/{attribute_name}", response_model=ObjectAttribute, tags=['Model'])
-async def get_attribute(object_type: ObjectTypeEnum, object_name: str, attribute_name: str, session_id = Depends(get_session_id)):
+@app.get("/model/{object_type}", response_model=ObjectInstance, tags=['Model'])
+async def get_model_object_instance(
+    object_type: ObjectTypeEnum,
+    object_name: str = Query('example_reservoir'),
+    attribute_filter: str = Query('*', description='filter attributes, by default * matches all attributes. You could pick a subset.'),
+    session_id = Depends(get_session_id)
+    ):
     o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
-    
-    try:
-        attribute = o[attribute_name]
-    except Exception as e:
-        raise HTTPException(500, f'object_type {{{object_type}}} does not have attribute {{{attribute_name}}}')
-    
-    return serialize_model_object_attribute(attribute)
+    return serialize_model_object_instance(o)
+
 
 # ------ connection
 
-@app.get("/connection", response_model=List[Connection], tags=['Connection'])
+
+@app.get("/connections", response_model=List[Connection], tags=['Connections'])
 async def get_connection(session_id = Depends(get_session_id)):
-    return Connection
+    return List[Connection]
 
-@app.put("/connection", tags=['Connection'])
-async def add_connection(connections: List[Connection] = None, session_id = Depends(get_session_id)):
-    return None
+@app.put("/connections", tags=['Connections'])
+async def add_connection(connections: List[Connection], session_id = Depends(get_session_id)):
+    pass
 
-# ------ commands
 
-@app.post("/internal/commands", response_model=CommandStatus, tags=['__internals'])
-async def post_list_of_api_commands(commands: Commands = None, session_id = Depends(get_session_id)):
+# ------ shop commands
+
+@app.post("/simulation/{command}", response_model=CommandStatus, tags=['Simulation'])
+async def post_simulation_command(command: Command, args: CommandArguments = None, session_id = Depends(get_session_id)):
     return CommandStatus(**{'message': 'ok'})
 
-# ------ view_show_api
+# ------ internal methods
 
-@app.get("/internal/commands", response_model=ApiCommands, tags=['__internals'])
-async def get_available_api_commands(session_id = Depends(get_session_id)):
+
+@app.get("/internal", response_model=ApiCommands, tags=['__internals'])
+async def get_available_internal_methods(session_id = Depends(get_session_id)):
     shopsession = SessionManager.get_shop_session(test_user, session_id)
     command_types = shopsession.shop_api.__dir__()
     command_types = list(filter(lambda x: x[0] != '_', command_types))
     return ApiCommands(**{'command_types': command_types})
 
-# ------ call_shop_api
-
-@app.get("/internal/command/{command}", response_model=ApiCommandDescription, tags=['__internals'])
-async def get_api_command_description(command: ApiCommandEnum, session_id = Depends(get_session_id)):
+@app.get("/internal/{command}", response_model=ApiCommandDescription, tags=['__internals'])
+async def get_internal_method_description(command: ApiCommandEnum, session_id = Depends(get_session_id)):
     shopsession = SessionManager.get_shop_session(test_user, session_id)
     doc = getattr(shopsession.shop_api, command).__doc__
     return ApiCommandDescription(**{'description': str(doc)})
 
-@app.post("/internal/command/{command}", response_model=CommandStatus, tags=['__internals'])
-async def post_api_command(command: ApiCommandEnum, session_id = Depends(get_session_id)):
+@app.post("/internal/{command}", response_model=CommandStatus, tags=['__internals'])
+async def call_internal_method(command: ApiCommandEnum, session_id = Depends(get_session_id)):
     return CommandStatus(**{'message': 'ok'})
 
 # ------- example

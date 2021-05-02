@@ -13,11 +13,13 @@ class UserSession:
         self.username = username
         self.expires = expires
         self.shopsessions = {}
+        self.shopsessions_time_resolution_is_set = {}
         self.sessioncounter = 0
 
     def add_shop_session(self) -> int:
         self.sessioncounter += 1
         self.shopsessions[self.sessioncounter] = ShopSession(license_path='', silent=False, log_file='')
+        self.shopsessions_time_resolution_is_set[self.sessioncounter] = False
         return self.sessioncounter
 
     def remove_shop_session(self, session_id: int) -> bool:

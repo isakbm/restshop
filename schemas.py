@@ -152,8 +152,11 @@ class Curve(BaseModel):
     y_unit: Optional[str] = Field(description='physical unit -- inferred')
     values: List[XYPair]
 
-CurveList = List[Curve]
-TimeCurves = Dict[datetime, Curve]
+class CurveList(BaseModel):
+    curves: List[Curve]
+
+class TimeCurves(BaseModel):
+    curves: Dict[datetime, Curve]
 
 #
 # Notice
@@ -201,15 +204,18 @@ def new_attribute_type_name_from_old(name: str) -> ObjectAttributeTypeEnum:
 
     return name
     
+
+AttributeValue = Union[bool, int, float, str, Curve, CurveList, TimeCurves, TimeSeries]
+
 class ObjectAttribute(BaseModel):
     attribute_name: str
     attribute_type: ObjectAttributeTypeEnum
-    value: Union[bool, int, float, str, Curve, CurveList, TimeCurves, TimeSeries] = None
+
 
 class ObjectInstance(BaseModel):
-    object_name: str = Field(description='name of instance')
-    object_type: str = Field(description='type of instance')
-    attributes: Optional[Dict[str, ObjectAttribute]] = Field(description='attributes that can be set on the given object_type')
+    object_name: str = Field('example_res', description='name of instance')
+    object_type: str = Field('reservoir', description='type of instance')
+    attributes: Optional[Dict[str, AttributeValue]] = Field(None, description='attributes that can be set on the given object_type')
 
 class ObjectType(BaseModel):
     object_type: str = Field(description='name of the object_type')
@@ -218,9 +224,13 @@ class ObjectType(BaseModel):
 
 # Connection
 
+class ObjectID(BaseModel):
+    object_type: str
+    object_name: str
+
 class Connection(BaseModel):
-    from_object: ObjectInstance
-    to_object: ObjectInstance
+    from_object: ObjectID
+    to_object: ObjectID
     relation_type: str = Field(desription="relation type")
 
 # Model
@@ -230,13 +240,30 @@ class Model(BaseModel):
 
 
     
-def serialize_model_object_attribute(attribute: Any) -> ObjectAttribute:
-
+def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
     attribute_type = new_attribute_type_name_from_old(attribute.info()['datatype'])
     attribute_name = attribute._attr_name
+    return str(attribute.get())
 
-    return ObjectAttribute(**{
-        'attribute_name': attribute_name,
-        'attribute_type': attribute_type,
-        'value' : str(attribute.get())
+def serialize_model_object_instance(o: Any) -> ObjectInstance:
+
+    attribute_names = list(o._attr_names)
+
+    return ObjectInstance(**{
+        'object_type': o.get_type(),
+        'object_name': o.get_name(),
+        'attributes': {
+            name: serialize_model_object_attribute((getattr(o, name))) for name in attribute_names
+        }
     })
+
+
+class CommandArguments(BaseModel):
+    options: Optional[List[str]] = None
+    values: Optional[List[str]] = None
+
+
+class Command(str, Enum):
+    start_sim = 'start_sim'
+    set_code = 'set_code'
+
