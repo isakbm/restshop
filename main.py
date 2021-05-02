@@ -168,14 +168,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @app.get("/sessions", response_model=List[Session], tags=['Session'])
 async def get_sessions():
-    sessions = [ Session(**{"session_id": id}) for id in SessionManager.list_shop_sessions(test_user)]
+    sessions = [ Session(session_id = id) for id in SessionManager.list_shop_sessions(test_user)]
     return sessions
 
 
 @app.get("/session", response_model=Session, tags=['Session'])
 async def get_session(session_id: int = Query(1)):
     if session_id in SessionManager.list_shop_sessions(test_user):
-        return Session(**{"session_id": session_id})
+        returnSession(session_id = session_id)
     else:
         return None
 
@@ -183,7 +183,7 @@ async def get_session(session_id: int = Query(1)):
 @app.post("/session", tags=['Session'])
 async def create_session(session: Session):
     session_id = SessionManager.add_shop_session(test_user)
-    return Session(**{"session_id": session_id})
+    return Session(session_id = session_id)
 
 
 # --------- time_resolution
@@ -237,42 +237,51 @@ async def get_time_resolution(session_id = Depends(get_session_id)):
     except Exception as e:
         http_raise_internal(    "Something whent wrong, maybe time_resolution has not been set yet", e)
 
-    time_resolution = dict(
+    return TimeResolution(
         start_time=tr['starttime'],
         end_time=tr['endtime'],
         timeunit=tr['timeunit'],
         time_resolution=Series_from_pd(tr['timeresolution'])
     )
-    return TimeResolution(**time_resolution)
 
 # ------ model
 
 @app.get("/model", response_model=Model, response_model_exclude_unset=True, tags=['Model'])
 async def get_model_object_types(session_id = Depends(get_session_id)):
     types = list(SessionManager.get_shop_session(test_user, session_id, raises=True).model._all_types)
-    return Model(**{'object_types': types})
+    return Model(object_types = types)
 
 # ------ object_type
 
-@app.get("/model/{object_type}/type_information", response_model=ObjectType, response_model_exclude_unset=True, tags=['Model'])
-async def get_model_object_type_information(object_type: ObjectTypeEnum, session_id = Depends(get_session_id)):
+@app.get("/model/{object_type}/information", response_model=ObjectType, response_model_exclude_unset=True, tags=['Model'])
+async def get_model_object_type_information(
+    object_type: ObjectTypeEnum,
+    attribute_filter: str = Query('*', description='filter attributes by regex'),
+    verbose: bool = Query(False, description='toggles attribute information, e.g isInput, isOutput, etc ...'),
+    session_id = Depends(get_session_id)
+):
+
+    if attribute_filter != '*':
+        raise HTTPException(500, 'setting attribute_filter != * is not support yet')
+
+    if verbose:
+        raise HTTPException(500, 'setting verbose = True is not supported yet')
+
     ot = SessionManager.get_model_object_type(test_user, session_id, object_type)
     instances = list(ot.get_object_names())
     sess = SessionManager.get_shop_session(test_user, session_id, raises=True)
     attribute_names: List[str] = list(sess.shop_api.GetObjectTypeAttributeNames(object_type))
     attribute_types: List[str] = list(sess.shop_api.GetObjectTypeAttributeDatatypes(object_type))
     attributes = {
-        n: ObjectAttribute(**{
-            'attribute_name': n,
-            'attribute_type': new_attribute_type_name_from_old(t),
-        }) for n, t in zip(attribute_names, attribute_types)
+        n: new_attribute_type_name_from_old(t)
+        for n, t in zip(attribute_names, attribute_types)
     }
 
-    return ObjectType(**{
-        'object_type': object_type,
-        'instances': instances, 
-        'attributes': attributes,
-    })
+    return ObjectType(
+        object_type = object_type,
+        instances = instances, 
+        attributes = attributes,
+    )
 
 # ------ object_name
 
@@ -286,10 +295,10 @@ async def create_or_modify_existing_model_object_instance(
         None,
         example={
             'attributes': {
-                'inflow': TimeSeries(**{
-                    'name': 'flow',
-                    'values': {'2020-01-01T00:00:00': [ 42.0 ] }
-                })
+                'inflow': TimeSeries(
+                    name = 'flow',
+                    values = {'2020-01-01T00:00:00': [ 42.0 ] }
+                )
             }
         }
     ),
@@ -320,50 +329,54 @@ async def create_or_modify_existing_model_object_instance(
 
             try:
                 if datatype == 'txy':
-                    # ser = pd.Series(json.loads(v.replace('\'', '\"')))
-                    # ser.index = pd.to_datetime(ser.index)
-                    # ser = ser.tz_localize(None)
-                    # model_object[k].set(ser)
-                    print(f'dtype = {datatype}')
+                    try:
+                        index, values = zip(*v.values.items())
+                        df = pd.DataFrame(index=index, data=values)
+                        model_object[k].set(df)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
                 elif datatype == 'xy':
+                    try:
+                        xy = [ (p.x, p.y) for p in v.values ]
+                        x_values, y_values = zip(*xy)
+                        ser = pd.Series(index=x_values, data=y_values, name=v.ref_value)
+                        model_object[k].set(ser)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
-                    xy = [ (p.x, p.y) for p in v.values ]
-                    x_values, y_values = zip(*xy)
-                    ser = pd.Series(index=x_values, data=y_values, name=v.name)
+                elif datatype in ['xy_array', 'xyn']:
+                    try:
+                        ser_list = []
+                        for curve in v.curves:
+                            xy = [ (p.x, p.y) for p in curve.values ]
+                            x_values, y_values = zip(*xy)
+                            ser_list += [pd.Series(index=x_values, data=y_values, name=curve.ref_value)]
+                        
+                        model_object[k].set(ser_list)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
-                    model_object[k].set(ser)
+                # elif datatype == 'xyt':
+                #     try:
 
-                    # ser = pd.Series(json.loads(v.replace('\'', '\"')))
-                    # ser.index = list(map(float, ser.index))
-                    # ret = model_object[k].set(ser)
-                    # print(ret)
-                    # print(f'dtype = {datatype}')
-
-                elif datatype == 'xy_array':
-                    # ser_arr = []
-                    # arr = json.loads(v.replace('\'', '\"'))
-                    # for name, data in arr.items():
-                    #     ser = pd.Series(data)
-                    #     ser.name = name
-                    #     ser_arr.append(ser)
-                    # model_object[k].set(ser_arr)
-                    print(f'dtype = {datatype}')
+                #     except Exception as e:
+                #         http_raise_internal(f'trouble setting {{{datatype}}} ', e)
                     
                 elif datatype == 'double':
-                    # model_object[k].set(float(v))
-                    print(f'dtype = {datatype}')
+                    model_object[k].set(float(v))
 
                 elif datatype == 'int':
-                # model_object[k].set(int(v))
-                    print(f'dtype = {datatype}')
+                    model_object[k].set(int(v))
 
                 else:
-                    # model_object[k].set(json.loads(v))
-                    print(f'dtype = {datatype}')
+                    try:
+                        model_object[k].set(v)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
             except:
-                HTTPException(400, f'Wrong attribute name {k} or invalid attribute value {v}')
+                raise HTTPException(400, f'Wrong attribute name {k} or invalid attribute value {v}')
 
     o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
     return serialize_model_object_instance(o)
@@ -372,9 +385,13 @@ async def create_or_modify_existing_model_object_instance(
 async def get_model_object_instance(
     object_type: ObjectTypeEnum,
     object_name: str = Query('example_reservoir'),
-    attribute_filter: str = Query('*', description='filter attributes, by default * matches all attributes. You could pick a subset.'),
+    attribute_filter: str = Query('*', description='filter attributes by regex'),
     session_id = Depends(get_session_id)
     ):
+
+    if attribute_filter != '*':
+        raise HTTPException(500, 'setting attribute_filter != * is not support yet')
+
     o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
     return serialize_model_object_instance(o)
 
@@ -395,7 +412,7 @@ async def add_connection(connections: List[Connection], session_id = Depends(get
 
 @app.post("/simulation/{command}", response_model=CommandStatus, tags=['Simulation'])
 async def post_simulation_command(command: Command, args: CommandArguments = None, session_id = Depends(get_session_id)):
-    return CommandStatus(**{'message': 'ok'})
+    return CommandStatus(message = 'ok')
 
 # ------ internal methods
 
@@ -405,17 +422,17 @@ async def get_available_internal_methods(session_id = Depends(get_session_id)):
     shopsession = SessionManager.get_shop_session(test_user, session_id)
     command_types = shopsession.shop_api.__dir__()
     command_types = list(filter(lambda x: x[0] != '_', command_types))
-    return ApiCommands(**{'command_types': command_types})
+    return ApiCommands(command_types = command_types)
 
 @app.get("/internal/{command}", response_model=ApiCommandDescription, tags=['__internals'])
 async def get_internal_method_description(command: ApiCommandEnum, session_id = Depends(get_session_id)):
     shopsession = SessionManager.get_shop_session(test_user, session_id)
     doc = getattr(shopsession.shop_api, command).__doc__
-    return ApiCommandDescription(**{'description': str(doc)})
+    return ApiCommandDescription(description = str(doc))
 
 @app.post("/internal/{command}", response_model=CommandStatus, tags=['__internals'])
 async def call_internal_method(command: ApiCommandEnum, session_id = Depends(get_session_id)):
-    return CommandStatus(**{'message': 'ok'})
+    return CommandStatus(message = 'ok')
 
 # ------- example
 

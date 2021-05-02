@@ -105,11 +105,11 @@ def Series_from_pd(series: pd.Series) -> Series:
     if series is None or len(series) == 0:
         return None
 
-    return Series(**{
-        'name': series.name,
-        'index': array_to_list_str(series.index),
-        'values': array_to_list_str(series.values)
-    })
+    return Series(
+        name = series.name,
+        index = array_to_list_str(series.index),
+        values = array_to_list_str(series.values)
+    )
 
 class DataFrame(BaseModel):
 
@@ -126,11 +126,11 @@ def DataFrame_from_pd(data_frame: pd.DataFrame) -> DataFrame:
         c_name: array_to_list_str(data_frame[c_name]) for c_name in data_frame.columns
     }
 
-    return DataFrame(**{
-        'name': data_frame[data_frame.columns[0]].name,
-        'columns': columns,
-        'data_frame_index': array_to_list_str(data_frame.index),
-    })
+    return DataFrame(
+        name = data_frame[data_frame.columns[0]].name,
+        columns = columns,
+        data_frame_index = array_to_list_str(data_frame.index),
+    )
 
 
 # ----------------- Primitive data types
@@ -153,9 +153,10 @@ class XYPair(BaseModel):
     y: float
 
 class Curve(BaseModel):
-    name: Optional[str] = Field('', description="curve name")
+    name: Optional[str] = Field(None, description="curve name")
     x_unit: Optional[str] = Field('MW', description='physical unit')
     y_unit: Optional[str] = Field('%', description='physical unit')
+    ref_value: float = 0.0
     values: List[XYPair]
 
 class CurveList(BaseModel):
@@ -221,6 +222,18 @@ AttributeValue = Union[None, float, str, List[float], Curve, CurveList, TimeCurv
 class ObjectAttribute(BaseModel):
     attribute_name: str
     attribute_type: ObjectAttributeTypeEnum
+    is_input: Optional[bool]
+    is_output: Optional[bool]
+    legacy_datatype: Optional[str]
+    x_unit: Optional[str]
+    y_unit: Optional[str]
+    license_name: Optional[str]
+    full_name: Optional[str]
+    data_func_name: Optional[str]
+    description: Optional[str]
+    documentation_url: Optional[str]
+    example_url_prefix: Optional[str]
+    example: Optional[str]
 
 
 class ObjectInstance(BaseModel):
@@ -231,7 +244,7 @@ class ObjectInstance(BaseModel):
 class ObjectType(BaseModel):
     object_type: str = Field(description='name of the object_type')
     instances: List[str] = Field(description='list of instances of this type')
-    attributes: Optional[Dict[str, ObjectAttribute]] = Field(description='attributes that can be set on the given object_type')
+    attributes: Optional[Dict[str, ObjectAttributeTypeEnum]] = Field(description='attributes that can be set on the given object_type')
 
 # Connection
 
@@ -272,7 +285,7 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
         return int(value)
 
     if attribute_type == 'float':
-        return 0.0
+        return float(value)
 
     if attribute_type == 'string':
         return str(value)
@@ -281,10 +294,10 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
         return str(value)
 
     if attribute_type == 'float_array':
-        return str(value)
+        return str(value) # TODO: fixme
 
     if attribute_type == 'int_array':
-        return str(value)
+        return str(value) # TODO: fixme
 
     if attribute_type == 'TimeSeries':
 
@@ -296,28 +309,40 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
             if isinstance(value, pd.DataFrame):
                 values = {t: v for t, v in zip(value.index.values, value.values.tolist())}
 
-            return TimeSeries(**{
-                'name': value.name,
-                'unit': attribute_y_unit,
-                'values': values
-            })
+            return TimeSeries(
+                name = value.name,
+                unit = attribute_y_unit,
+                values = values
+            )
 
     if attribute_type == 'Curve':
 
         if isinstance(value, pd.Series):
-            return Curve(**{
-                'name': value.name,
-                'x_unit': attribute_x_unit,
-                'y_unit': attribute_y_unit,
-                'values': [ XYPair(**{'x': x, 'y': y}) for x,y in zip(value.index.values, value.values) ]
-            })
+            return Curve(
+                name = value.name,
+                x_unit = attribute_x_unit,
+                y_unit = attribute_y_unit,
+                values = [ XYPair(x=x, y=y) for x,y in zip(value.index.values, value.values) ]
+            )
 
     if attribute_type == 'TimeCurves':
         return f'TimeCurves: {type(value)}'
 
     if attribute_type == 'CurveList':
-        return f'CurveList: {type(value)}'
-    
+
+        if type(value) == list and isinstance(value[0], pd.Series):
+
+            return CurveList(
+                curves=[
+                    Curve(
+                        ref_value = ser.name,
+                        x_unit = attribute_x_unit,
+                        y_unit = attribute_y_unit,
+                        values = [ XYPair(x=x, y=y) for x,y in zip(ser.index.values, ser.values) ]
+                    ) for ser in value
+                ]
+            )
+
     raise HTTPException(500, f"{attribute_type}: cannot parse <{type(value)}>")
 
 
@@ -325,13 +350,13 @@ def serialize_model_object_instance(o: Any) -> ObjectInstance:
 
     attribute_names = list(o._attr_names)
 
-    return ObjectInstance(**{
-        'object_type': o.get_type(),
-        'object_name': o.get_name(),
-        'attributes': {
+    return ObjectInstance(
+        object_type = o.get_type(),
+        object_name = o.get_name(),
+        attributes = {
             name: serialize_model_object_attribute((getattr(o, name))) for name in attribute_names
         }
-    })
+    )
 
 
 class CommandArguments(BaseModel):
