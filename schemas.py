@@ -244,7 +244,8 @@ class ObjectInstance(BaseModel):
 class ObjectType(BaseModel):
     object_type: str = Field(description='name of the object_type')
     instances: List[str] = Field(description='list of instances of this type')
-    attributes: Optional[Dict[str, ObjectAttributeTypeEnum]] = Field(description='attributes that can be set on the given object_type')
+    attributes: Optional[Dict[str, Union[ObjectAttributeTypeEnum, ObjectAttribute]]]  \
+        = Field(description='attributes that can be set on the given object_type')
 
 # Connection
 

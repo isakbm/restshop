@@ -257,25 +257,53 @@ async def get_model_object_types(session_id = Depends(get_session_id)):
 async def get_model_object_type_information(
     object_type: ObjectTypeEnum,
     attribute_filter: str = Query('*', description='filter attributes by regex'),
-    verbose: bool = Query(False, description='toggles attribute information, e.g isInput, isOutput, etc ...'),
+    verbose: bool = Query(False, description='toggles additional attribute information, e.g is_input, is_output, etc ...'),
     session_id = Depends(get_session_id)
 ):
 
     if attribute_filter != '*':
         raise HTTPException(500, 'setting attribute_filter != * is not support yet')
 
-    if verbose:
-        raise HTTPException(500, 'setting verbose = True is not supported yet')
-
     ot = SessionManager.get_model_object_type(test_user, session_id, object_type)
     instances = list(ot.get_object_names())
     sess = SessionManager.get_shop_session(test_user, session_id, raises=True)
     attribute_names: List[str] = list(sess.shop_api.GetObjectTypeAttributeNames(object_type))
     attribute_types: List[str] = list(sess.shop_api.GetObjectTypeAttributeDatatypes(object_type))
-    attributes = {
-        n: new_attribute_type_name_from_old(t)
-        for n, t in zip(attribute_names, attribute_types)
-    }
+
+    if not verbose:
+        attributes = {
+            n: new_attribute_type_name_from_old(t)
+            for n, t in zip(attribute_names, attribute_types)
+        }
+    else:
+
+        # TODO: Create this kind of dictionary once at startup, since this might be expensive?
+        attr_info = {
+            attr_name: {
+                info_key: sess.shop_api.GetAttributeInfo(object_type, attr_name, info_key)
+                for info_key in sess.shop_api.GetValidAttributeInfoKeys()
+            } for attr_name in attribute_names
+        }
+
+        attributes = {
+            n: ObjectAttribute(
+                attribute_name = n,
+                attribute_type = new_attribute_type_name_from_old(t),
+                is_input = attr_info[n]['isInput'],
+                is_output = attr_info[n]['isOutput'],
+                legacy_datatype = attr_info[n]['datatype'],
+                x_unit = attr_info[n]['xUnit'],
+                y_unit = attr_info[n]['yUnit'],
+                license_name = attr_info[n]['licenseName'],
+                full_name = attr_info[n]['fullName'],
+                data_func_name = attr_info[n]['dataFuncName'],
+                description = attr_info[n]['description'],
+                documentation_url = attr_info[n]['documentationUrl'],
+                example_url_prefix = attr_info[n]['exampleUrlPrefix'],
+                example = attr_info[n]['example']
+            )
+            for n, t in zip(attribute_names, attribute_types)
+        }
 
     return ObjectType(
         object_type = object_type,
