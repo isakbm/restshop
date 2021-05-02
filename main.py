@@ -282,14 +282,13 @@ async def get_model_object_type_information(object_type: ObjectTypeEnum, session
 async def create_or_modify_existing_model_object_instance(
     object_type: ObjectTypeEnum,
     object_name: str = Query('example_reservoir'),
-    instance: ObjectInstance = Body(
+    object_instance: ObjectInstance = Body(
         None,
         example={
             'attributes': {
                 'inflow': TimeSeries(**{
                     'name': 'flow',
-                    'timestamp': ['2020-01-01T00:00:00' ],
-                    'values': [ [ 42.0 ] ]
+                    'values': {'2020-01-01T00:00:00': [ 42.0 ] }
                 })
             }
         }
@@ -302,16 +301,17 @@ async def create_or_modify_existing_model_object_instance(
         object_generator = session.model[object_type]
     except Exception as e:
         raise HTTPException(500, f'model does not implement object_type {{{object_type}}}') 
-        
-    try:
-        object_generator.add_object(object_name)
-    except Exception as e:
-        raise HTTPException(500, f'object_name {{{object_name}}} is in conflict with existing instance')
+
+    if object_name not in object_generator.get_object_names():
+        try:
+            object_generator.add_object(object_name)
+        except Exception as e:
+            raise HTTPException(500, f'object_name {{{object_name}}} is in conflict with existing instance')
 
     model_object = session.model[object_type][object_name]
 
-    if instance.attributes:
-        for (k,v) in instance.attributes.items():
+    if object_instance.attributes:
+        for (k,v) in object_instance.attributes.items():
 
             try:
                 datatype = model_object[k].info()['datatype']
@@ -327,11 +327,18 @@ async def create_or_modify_existing_model_object_instance(
                     print(f'dtype = {datatype}')
 
                 elif datatype == 'xy':
+
+                    xy = [ (p.x, p.y) for p in v.values ]
+                    x_values, y_values = zip(*xy)
+                    ser = pd.Series(index=x_values, data=y_values, name=v.name)
+
+                    model_object[k].set(ser)
+
                     # ser = pd.Series(json.loads(v.replace('\'', '\"')))
                     # ser.index = list(map(float, ser.index))
                     # ret = model_object[k].set(ser)
                     # print(ret)
-                    print(f'dtype = {datatype}')
+                    # print(f'dtype = {datatype}')
 
                 elif datatype == 'xy_array':
                     # ser_arr = []
