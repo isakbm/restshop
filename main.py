@@ -323,10 +323,21 @@ async def create_or_modify_existing_model_object_instance(
         None,
         example={
             'attributes': {
-                'inflow': TimeSeries(
-                    name = 'flow',
-                    values = {'2020-01-01T00:00:00': [ 42.0 ] }
-                )
+                'vol_head': {
+                    'x_values': [10.0],
+                    'y_values': [42.0]
+                },
+                'inflow_cut_coeffs': {
+                    '0.0': {
+                        'x_values': [10.0],
+                        'y_values': [42.0]
+                    }
+                },
+                'inflow': {
+                    #'values': {'2020-01-01T00:00:00': [ 42.0 ] }
+                    'timestamps': ['2020-01-01T00:00:00'],
+                    'values': [[42.0]]
+                }
             }
         }
     ),
@@ -358,7 +369,9 @@ async def create_or_modify_existing_model_object_instance(
             try:
                 if datatype == 'txy':
                     try:
-                        index, values = zip(*v.values.items())
+                        time_series: TimeSeries = v # time_series
+                        # index, values = zip(*time_series.values.items())
+                        index, values = time_series.timestamps, time_series.values
                         df = pd.DataFrame(index=index, data=values)
                         model_object[k].set(df)
                     except Exception as e:
@@ -366,21 +379,18 @@ async def create_or_modify_existing_model_object_instance(
 
                 elif datatype == 'xy':
                     try:
-                        xy = [ (p.x, p.y) for p in v.values ]
-                        x_values, y_values = zip(*xy)
-                        ser = pd.Series(index=x_values, data=y_values, name=v.ref_value)
+                        curve: Curve = v # curve
+                        ser = pd.Series(index=curve.x_values, data=curve.y_values)
                         model_object[k].set(ser)
                     except Exception as e:
                         http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
                 elif datatype in ['xy_array', 'xyn']:
                     try:
+                        curves: OrderedDict[float, Curve] = v # OrderedDict[float, Curve]
                         ser_list = []
-                        for curve in v.curves:
-                            xy = [ (p.x, p.y) for p in curve.values ]
-                            x_values, y_values = zip(*xy)
-                            ser_list += [pd.Series(index=x_values, data=y_values, name=curve.ref_value)]
-                        
+                        for ref, curve in curves.items():
+                            ser_list += [pd.Series(index=curve.x_values, data=curve.y_values, name=ref)]
                         model_object[k].set(ser_list)
                     except Exception as e:
                         http_raise_internal(f'trouble setting {{{datatype}}} ', e)

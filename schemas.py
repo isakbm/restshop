@@ -1,5 +1,6 @@
+import collections
 
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Dict, Optional, Union, Any, OrderedDict
 from enum import Enum
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -135,41 +136,24 @@ def DataFrame_from_pd(data_frame: pd.DataFrame) -> DataFrame:
 
 # ----------------- Primitive data types
 
-# class TimeSeries(BaseModel):
-#     name: str
-#     timestamp: List[datetime]
-#     unit: Optional[str] = Field('NOK', description='physical unit')
-#     values: List[List[float]]
-    # stop_time: Optional[List[datetime]] = None
-    # start_time: Optional[List[datetime]] = None
-
 class TimeSeries(BaseModel):
-    name: str = ''
+    name: Optional[str] = Field(None, description="name of the series")
     unit: Optional[str] = Field('NOK', description='unit of time series values')
-    values: Dict[datetime, List[float]] = Field({}, description='values')
-
-class XYPair(BaseModel):
-    x: float
-    y: float
+    # values: Dict[datetime, List[float]] = Field({}, description='values')
+    timestamps: List[datetime]
+    values: List[List[float]]
 
 class Curve(BaseModel):
-    name: Optional[str] = Field(None, description="curve name")
-    x_unit: Optional[str] = Field('MW', description='physical unit')
-    y_unit: Optional[str] = Field('%', description='physical unit')
-    ref_value: float = 0.0
-    values: List[XYPair]
-
-class CurveList(BaseModel):
-    curves: List[Curve]
-
-class TimeCurves(BaseModel):
-    curves: Dict[datetime, Curve]
+    x_unit: Optional[str] = Field('MW', description='unit of x_values')
+    y_unit: Optional[str] = Field('%', description='unit of y_values')
+    x_values: List[float]
+    y_values: List[float]
 
 #
 # Notice
 # - xy             <-> Curve 
-# - xy_array, xyn  <-> CurveList
-# - xyt            <-> TimeCurves
+# - xy_array, xyn  <-> OrderedDict[float, Curve]
+# - xyt            <-> OrderedDict[datetime, Curve]
 # - txy, #ttxy     <-> TimeSeries
 #
 
@@ -189,8 +173,8 @@ class ObjectAttributeTypeEnum(str, Enum):
     float_array = 'float_array',
     integer_array = 'integer_array',
     Curve = 'Curve'
-    CurveList = 'CurveList'
-    TimeCurves = 'TimeCurves'
+    ListCurve = 'List[Curve]'
+    MapTimeCurve = 'Dict[datetime, Curve]'
     TimeSeries = 'TimeSeries'
 
 
@@ -204,9 +188,9 @@ def new_attribute_type_name_from_old(name: str) -> ObjectAttributeTypeEnum:
         'double_array': 'float_array',
         'int_array': 'integer_array',
         'xy': 'Curve',
-        'xy_array': 'CurveList',
-        'xyn': 'CurveList',
-        'xyt': 'TimeCurves',
+        'xy_array': 'OrderedDict[float, Curve]',
+        'xyn': 'OrderedDict[float, Curve]',
+        'xyt': 'OrderedDict[datetime, Curve]',
         'txy': 'TimeSeries'
     }
 
@@ -217,7 +201,7 @@ def new_attribute_type_name_from_old(name: str) -> ObjectAttributeTypeEnum:
     return name
     
 
-AttributeValue = Union[None, float, str, List[float], Curve, CurveList, TimeCurves, TimeSeries]
+AttributeValue = Union[None, float, str, List[float], Curve, OrderedDict[float, Curve], OrderedDict[datetime, Curve], TimeSeries]
 
 class ObjectAttribute(BaseModel):
     attribute_name: str
@@ -306,13 +290,19 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
             print("list values: ", value.values)
             
             if isinstance(value, pd.Series):
-                values = {t: [v] for t, v in zip(value.index.values, value.values)}
+                # values = {t: [v] for t, v in zip(value.index.values, value.values)}
+                timestamps = value.index.values.tolist()
+                values = value.values.reshape(value.values.size, 1).tolist()
+
             if isinstance(value, pd.DataFrame):
-                values = {t: v for t, v in zip(value.index.values, value.values.tolist())}
+                # values = {t: v for t, v in zip(value.index.values, value.values.tolist())}
+                timestamps = value.index.values.tolist()
+                values = value.values.tolist()
 
             return TimeSeries(
                 name = value.name,
                 unit = attribute_y_unit,
+                timestamps = timestamps,
                 values = values
             )
 
@@ -320,29 +310,27 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
 
         if isinstance(value, pd.Series):
             return Curve(
-                name = value.name,
                 x_unit = attribute_x_unit,
                 y_unit = attribute_y_unit,
-                values = [ XYPair(x=x, y=y) for x,y in zip(value.index.values, value.values) ]
+                x_values = value.index.values.tolist(),
+                y_values = value.values.tolist()
             )
 
-    if attribute_type == 'TimeCurves':
-        return f'TimeCurves: {type(value)}'
+    if attribute_type == 'OrderedDict[datetime, Curve]':
+        return f'OrderedDict[datetime, Curve]: {type(value)}'
 
-    if attribute_type == 'CurveList':
+    if attribute_type == 'OrderedDict[float, Curve]':
 
         if type(value) == list and isinstance(value[0], pd.Series):
 
-            return CurveList(
-                curves=[
-                    Curve(
-                        ref_value = ser.name,
-                        x_unit = attribute_x_unit,
-                        y_unit = attribute_y_unit,
-                        values = [ XYPair(x=x, y=y) for x,y in zip(ser.index.values, ser.values) ]
-                    ) for ser in value
-                ]
-            )
+            return { ser.name: # reference value is stored in series.name
+                Curve(
+                    x_unit = attribute_x_unit,
+                    y_unit = attribute_y_unit,
+                    x_values = ser.index.values.tolist(),
+                    y_values = ser.values.tolist()
+                ) for ser in value
+            }
 
     raise HTTPException(500, f"{attribute_type}: cannot parse <{type(value)}>")
 
