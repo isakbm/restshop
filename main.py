@@ -395,11 +395,15 @@ async def create_or_modify_existing_model_object_instance(
                     except Exception as e:
                         http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
-                # elif datatype == 'xyt':
-                #     try:
-
-                #     except Exception as e:
-                #         http_raise_internal(f'trouble setting {{{datatype}}} ', e)
+                elif datatype == 'xyt':
+                    try:
+                        curves: OrderedDict[datetime, Curve] = v
+                        ser_list = []
+                        for ref, curve in curves.items():
+                            ser_list += [pd.Series(index=curve.x_values, data=curve.y_values, name=ref)]
+                        model_object[k].set(ser_list)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
                     
                 elif datatype == 'double':
                     model_object[k].set(float(v))

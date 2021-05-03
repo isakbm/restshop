@@ -173,25 +173,25 @@ class ObjectAttributeTypeEnum(str, Enum):
     float_array = 'float_array',
     integer_array = 'integer_array',
     Curve = 'Curve'
-    ListCurve = 'List[Curve]'
-    MapTimeCurve = 'Dict[datetime, Curve]'
+    MapFloatCurve = 'OrderedDict[float, Curve]'
+    MapTimeCurve = 'OrderedDict[datetime, Curve]'
     TimeSeries = 'TimeSeries'
 
 
 def new_attribute_type_name_from_old(name: str) -> ObjectAttributeTypeEnum:
     
     conversion_map = {
-        'bool' : 'boolean',
-        'int': 'integer',
-        'double': 'float',
-        'str': 'string',
-        'double_array': 'float_array',
-        'int_array': 'integer_array',
-        'xy': 'Curve',
-        'xy_array': 'OrderedDict[float, Curve]',
-        'xyn': 'OrderedDict[float, Curve]',
-        'xyt': 'OrderedDict[datetime, Curve]',
-        'txy': 'TimeSeries'
+        'bool': ObjectAttributeTypeEnum.boolean,
+        'int': ObjectAttributeTypeEnum.integer,
+        'double': ObjectAttributeTypeEnum.float,
+        'str': ObjectAttributeTypeEnum.string,
+        'double_array': ObjectAttributeTypeEnum.float_array,
+        'int_array': ObjectAttributeTypeEnum.integer_array,
+        'xy': ObjectAttributeTypeEnum.Curve,
+        'xy_array': ObjectAttributeTypeEnum.MapFloatCurve,
+        'xyn': ObjectAttributeTypeEnum.MapFloatCurve,
+        'xyt': ObjectAttributeTypeEnum.MapTimeCurve,
+        'txy': ObjectAttributeTypeEnum.TimeSeries,
     }
 
     if name in conversion_map:
@@ -263,41 +263,40 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
     if value is None:
         return None
 
-    if attribute_type == 'boolean':
+    if attribute_type == ObjectAttributeTypeEnum.boolean:
         return bool(value)
 
-    if attribute_type == 'integer':
+    if attribute_type == ObjectAttributeTypeEnum.integer:
         return int(value)
 
-    if attribute_type == 'float':
+    if attribute_type == ObjectAttributeTypeEnum.float:
         return float(value)
 
-    if attribute_type == 'string':
+    if attribute_type == ObjectAttributeTypeEnum.string:
         return str(value)
 
-    if attribute_type == 'datetime':
+    if attribute_type == ObjectAttributeTypeEnum.datetime:
         return str(value)
 
-    if attribute_type == 'float_array':
+    if attribute_type == ObjectAttributeTypeEnum.float_array:
         return str(value) # TODO: fixme
 
-    if attribute_type == 'int_array':
+    if attribute_type == ObjectAttributeTypeEnum.integer_array:
         return str(value) # TODO: fixme
 
-    if attribute_type == 'TimeSeries':
+    if attribute_type == ObjectAttributeTypeEnum.TimeSeries:
 
         if isinstance(value, pd.Series) or isinstance(value, pd.DataFrame):
-            print("list values: ", value.values)
             
             if isinstance(value, pd.Series):
                 # values = {t: [v] for t, v in zip(value.index.values, value.values)}
                 timestamps = value.index.values.tolist()
-                values = value.values.reshape(value.values.size, 1).tolist()
+                values = value.values.reshape(1, value.values.size).tolist()
 
             if isinstance(value, pd.DataFrame):
                 # values = {t: v for t, v in zip(value.index.values, value.values.tolist())}
-                timestamps = value.index.values.tolist()
-                values = value.values.tolist()
+                timestamps = value.index.value.tolist()
+                values = value.values.transpose().tolist()
 
             return TimeSeries(
                 name = value.name,
@@ -306,7 +305,7 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
                 values = values
             )
 
-    if attribute_type == 'Curve':
+    if attribute_type == ObjectAttributeTypeEnum.Curve:
 
         if isinstance(value, pd.Series):
             return Curve(
@@ -316,10 +315,10 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
                 y_values = value.values.tolist()
             )
 
-    if attribute_type == 'OrderedDict[datetime, Curve]':
-        return f'OrderedDict[datetime, Curve]: {type(value)}'
+    if attribute_type == ObjectAttributeTypeEnum.MapTimeCurve:
+        return f'{attribute_type}: {type(value)}'
 
-    if attribute_type == 'OrderedDict[float, Curve]':
+    if attribute_type == ObjectAttributeTypeEnum.MapFloatCurve:
 
         if type(value) == list and isinstance(value[0], pd.Series):
 
