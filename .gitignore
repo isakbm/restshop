@@ -1,2 +1,5 @@
 **/__pycache__
 .vscode/settings.json
+*.dll
+**/*.egg-info/**
+*.pyd

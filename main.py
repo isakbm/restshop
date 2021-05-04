@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from fastapi.openapi.models import SchemaBase
 
-from src.sessions import SessionManager
+from sessions import SessionManager
 from enum import Enum
 
 from fastapi import Path, Header
@@ -324,19 +324,19 @@ async def create_or_modify_existing_model_object_instance(
         example={
             'attributes': {
                 'vol_head': {
-                    'x_values': [10.0],
-                    'y_values': [42.0]
+                    'x_values': [10.0, 20.0, 30.0],
+                    'y_values': [42.0, 43.0, 45.0]
                 },
                 'inflow_cut_coeffs': {
                     '0.0': {
-                        'x_values': [10.0],
-                        'y_values': [42.0]
+                        'x_values': [10.0, 9.0, 8.0],
+                        'y_values': [42.0, 20.0, 10.0]
                     }
                 },
                 'inflow': {
                     #'values': {'2020-01-01T00:00:00': [ 42.0 ] }
-                    'timestamps': ['2020-01-01T00:00:00'],
-                    'values': [[42.0]]
+                    'timestamps': ['2020-01-01T00:00:00', '2020-01-01T05:00:00' ],
+                    'values': [[42.0, 50.0]]
                 }
             }
         }

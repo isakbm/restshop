@@ -1,0 +1,366 @@
+INFORMATION: 1032
+14.0.0.a Cplex 20.1.0 Gurobi 7.5 OSI/CBC 2.9 2021-03-19
+
+INFORMATION: 1047
+Current time: Tue May  4 15:14:14 2021
+
+DIAGNOSIS ERROR: 3510
+Solver interface not found
+--------------*----------------*------------
+
+Overview over input data:
+
+Max number of main iterations       : 3
+Switch to incremental formulation   : 1000
+Convergence criteria                : 1.000000
+Plant head optimization             : Yes
+Load penalty variables added        : Yes 
+Load penalty cost                   : 5000.00 
+Power input limit penalty variables added        : Yes 
+Reservoir penalty variables added        : Yes 
+Reservoir penalty cost                   : 10000000.00 
+
+If ramping constraints are activated 
+Reservoir ramping penalty variables added?       : Yes 
+Reservoir ramping penalty cost                   : 100.00 
+
+If ramping constraints are activated 
+Discharge ramping penalty variables added?       : Yes 
+Discharge_ramping penalty cost                   : 100.00 
+
+Number of bypass segments applied   : 1  
+Penalty bypass cost                 : 0.01  
+Bypass max. capacity (m3/s)         : 30.00  
+
+Number of gate segments applied     : 3  
+Penalty gate cost                   : 0.00  
+Gate max. capacity (m3/s)           : 100.00  
+
+Number of overflow segments applied : 3  
+Penalty overflow cost               : 50000.00  
+Penalty overflow cost time adjust   : -0.00  
+Overflow max. capacity (m3/s)       : 200.00  
+
+Reserve penalty cost                   : 1000.00  
+Gate ramping cost (<currency>/(m3/s))      : 0.00  
+--------------*----------------*------------
+Topology of the system
+
+
+Reservoir name: Reservoir1
+  Connected upstream  :
+  Connected downstream  :
+     Plant1 in position 0
+
+Reservoir name: Reservoir2
+  Connected upstream  :
+     Plant1 in position 0
+  Connected downstream  :
+     Plant2 in position 0
+--------------*----------------*------------
+
+
+Summary of market exchange prices:
+
+ Area 1 
+	Maximum purchase price 	 40.010 	Minimum purchase price 	 40.010 
+	Maximum sale price 	 39.990 	Minimum sale price 	 39.990
+
+ Load penalty cost:  5000.00 
+
+--------------*----------------*------------
+Topology of the plants
+
+
+Plant name: Plant1
+      Outlet line: 40.0, downstream lrl: 40.0, downstream hrl: 50.0.
+
+Plant name: Plant2
+      No downstream reservoir, outlet line :  0.0
+--------------*----------------*------------
+
+Range of reservoir endpoint descriptions:
+
+
+Range of water value references 
+	Average:   39.15, 	Minimum:   38.60, 	Maximum:   39.70
+INFORMATION: 1051
+Overview SHOP environment variables (on), see shop.log:
+SHOP_COMMON_OUTLET                                expires 2120-13-31 
+SHOP_PRESIM                                       expires 2120-13-31 
+SHOP_DYNAMIC_DELAY                                expires 2120-13-31 
+SHOP_BEP_COST_CURVE                               expires 2120-13-31 
+SHOP_RESIDUAL_RESERVOIR                           expires 2120-13-31 
+SHOP_JUNCTION_BELOW_PLANT                         expires 2120-13-31 
+SHOP_XML_FORMAT                                   expires 2120-13-31 
+SHOP_FLEX_MIP                                     expires 2120-13-31 
+SHOP_RAMPING_UPGRADED                             expires 2120-13-31 
+SHOP_TACTICAL_LIMIT                               expires 2120-13-31 
+SHOP_VOW_IN_TRANS                                 expires 2120-13-31 
+SHOP_SUM_P_TIME_PERIOD                            expires 2120-13-31 
+SHOP_SUM_Q_TIME_STEP                              expires 2120-13-31 
+SHOP_INITIAL_STATE                                expires 2120-13-31 
+SHOP_RESOLVE_MC                                   expires 2120-13-31 
+SHOP_FEEDING_FEE                                  expires 2120-13-31 
+SHOP_TIME_VARIANT_GEN_MAX_PROD                    expires 2120-13-31 
+SHOP_CREEK_INTAKE                                 expires 2120-13-31 
+SHOP_CUT_CORRECTION                               expires 2120-13-31 
+SHOP_BLOCK_GENERATION                             expires 2120-13-31 
+SHOP_SCHEDULE_M3S                                 expires 2120-13-31 
+SHOP_SOFT_CONSTRAINTS                             expires 2120-13-31 
+SHOP_LP_HTML                                      expires 2120-13-31 
+SHOP_ACTIVE_CONSTRAINTS                           expires 2120-13-31 
+SHOP_GATE_RAMPING                                 expires 2120-13-31 
+SHOP_TIME_STARTCOST                               expires 2120-13-31 
+SHOP_CONTRACT                                     expires 2120-13-31 
+SHOP_RELTIME                                      expires 2120-13-31 
+SHOP_PELTON                                       expires 2120-13-31 
+SHOP_EBL_PLANT                                    expires 2120-13-31 
+SHOP_AFFINITY                                     expires 2120-13-31 
+SHOP_JUNCG_SERIES                                 expires 2120-13-31 
+SHOP_JUNC_GATE                                    expires 2120-13-31 
+SHOP_JUNCG_TWOWAY                                 expires 2120-13-31 
+SHOP_OVERFLOW_MIP                                 expires 2120-13-31 
+SHOP_RSV_HEAD_OPT                                 expires 2120-13-31 
+SHOP_OWNERSHIP                                    expires 2120-13-31 
+SHOP_LOSE_SPILL                                   expires 2120-13-31 
+SHOP_OVERFLOW_COST                                expires 2120-13-31 
+SHOP_MULTI_OBJECT                                 expires 2120-13-31 
+SHOP_MULTIPLE_LOAD_MARKETS                        expires 2120-13-31 
+SHOP_EXTRA_DATA                                   expires 2120-13-31 
+SHOP_STREAMING                                    expires 2120-13-31 
+SHOP_BUILD_PLANT_COMB                             expires 2120-13-31 
+SHOP_TIDES                                        expires 2120-13-31 
+SHOP_SCHED_MIN_MAX_BEST                           expires 2120-13-31 
+SHOP_RAMP_STEP                                    expires 2120-13-31 
+SHOP_DYN_FLEX                                     expires 2120-13-31 
+SHOP_MC                                           expires 2120-13-31 
+SHOP_GATE_FLOW_LIN_REL                            expires 2120-13-31 
+SHOP_SUM_P_TIME_STEP                              expires 2120-13-31 
+SHOP_AVERAGE_Q                                    expires 2120-13-31 
+SHOP_TIME_VARIANT_GEN_MIN_PROD                    expires 2120-13-31 
+SHOP_MULTI_STEP_WV                                expires 2120-13-31 
+SHOP_FREQ_RES_MARKET                              expires 2120-13-31 
+SHOP_PUMPING_CONSTRAINT                           expires 2120-13-31 
+SHOP_NONSEQ_AMPLITUDE_RSV_RAMP                    expires 2120-13-31 
+SHOP_ROT_RES_SCHED                                expires 2120-13-31 
+SHOP_POL_EFF_CURVE                                expires 2120-13-31 
+SHOP_BLOCK_MERGE                                  expires 2120-13-31 
+SHOP_RESERVE_GROUP                                expires 2120-13-31 
+SHOP_SOLVER_GUROBI                                expires 2120-13-31 
+SHOP_SIMULATION                                   expires 2120-13-31 
+SHOP_SOLVER_OSI                                   expires 2120-13-31 
+SHOP_MIP_TUNING                                   expires 2120-13-31 
+SHOP_PRESSURE_POINT                               expires 2120-13-31 
+SHOP_MIX_CUT_VV_PROTOTYPE                         expires 2120-13-31 
+SHOP_EXTENDED_CUT_FUNCTIONALITY                   expires 2120-13-31 
+SHOP_EXTENDED_PUMP_FUNCTIONALITY                  expires 2120-13-31 
+SHOP_SCENARIO_FUNCTIONALITY                       expires 2120-13-31 
+SHOP_RESERVE_CLUSTERING_FUNCTIONALITY             expires 2120-13-31 
+SHOP_DISCHARGE_GROUP_FUNCTIONALITY                expires 2120-13-31 
+SHOP_POWER_HEAD_OPTIMIZATION                      expires 2120-13-31 
+SHOP_ELEVATION_ADJUSTMENT                         expires 2120-13-31 
+SHOP_CONSUMPTION_FEE                              expires 2120-13-31 
+SHOP_BEST_PROFIT                                  expires 2120-13-31 
+SHOP_PRESSURE_LINK                                expires 2120-13-31 
+SHOP_SINTEF_INTERNAL                              expires 2120-13-31 
+SHOP_OPEN                                         expires 2120-13-31 
+SHOP_TUNNEL                                       expires 2120-13-31 
+
+End overview over input data:
+
+--------------*----------------*------------
+INFORMATION: 1002
+Parameter settings: (1. iteration).
+INFORMATION: 1003
+Full description. No curve fitting.
+INFORMATION: 1007
+Ramping on request (if ramping exceeded). 
+INFORMATION: 1009
+Head optimization on.
+INFORMATION: 1011
+1. iteration.
+--------------*----------------*------------
+INFORMATION: 1046
+Time used in CPLEX    0.00 s.
+--------------*----------------*------------
+DIAGNOSIS ERROR: 3510
+Solver interface not found
+--------------*----------------*------------
+
+Overview over input data:
+
+Max number of main iterations       : 3
+Switch to incremental formulation   : 1000
+Convergence criteria                : 1.000000
+Plant head optimization             : Yes
+Load penalty variables added        : Yes 
+Load penalty cost                   : 5000.00 
+Power input limit penalty variables added        : Yes 
+Reservoir penalty variables added        : Yes 
+Reservoir penalty cost                   : 10000000.00 
+
+If ramping constraints are activated 
+Reservoir ramping penalty variables added?       : Yes 
+Reservoir ramping penalty cost                   : 100.00 
+
+If ramping constraints are activated 
+Discharge ramping penalty variables added?       : Yes 
+Discharge_ramping penalty cost                   : 100.00 
+
+Number of bypass segments applied   : 1  
+Penalty bypass cost                 : 0.01  
+Bypass max. capacity (m3/s)         : 30.00  
+
+Number of gate segments applied     : 3  
+Penalty gate cost                   : 0.00  
+Gate max. capacity (m3/s)           : 100.00  
+
+Number of overflow segments applied : 3  
+Penalty overflow cost               : 50000.00  
+Penalty overflow cost time adjust   : -0.00  
+Overflow max. capacity (m3/s)       : 200.00  
+
+Reserve penalty cost                   : 1000.00  
+Gate ramping cost (<currency>/(m3/s))      : 0.00  
+--------------*----------------*------------
+Topology of the system
+
+
+Reservoir name: Reservoir1
+  Connected upstream  :
+  Connected downstream  :
+     Plant1 in position 0
+
+Reservoir name: Reservoir2
+  Connected upstream  :
+     Plant1 in position 0
+  Connected downstream  :
+     Plant2 in position 0
+--------------*----------------*------------
+
+
+Summary of market exchange prices:
+
+ Area 1 
+	Maximum purchase price 	 40.010 	Minimum purchase price 	 40.010 
+	Maximum sale price 	 39.990 	Minimum sale price 	 39.990
+
+ Load penalty cost:  5000.00 
+
+--------------*----------------*------------
+Topology of the plants
+
+
+Plant name: Plant1
+      Outlet line: 40.0, downstream lrl: 40.0, downstream hrl: 50.0.
+
+Plant name: Plant2
+      No downstream reservoir, outlet line :  0.0
+--------------*----------------*------------
+
+Range of reservoir endpoint descriptions:
+
+
+Range of water value references 
+	Average:   39.15, 	Minimum:   38.60, 	Maximum:   39.70
+INFORMATION: 1051
+Overview SHOP environment variables (on), see shop.log:
+SHOP_COMMON_OUTLET                                expires 2120-13-31 
+SHOP_PRESIM                                       expires 2120-13-31 
+SHOP_DYNAMIC_DELAY                                expires 2120-13-31 
+SHOP_BEP_COST_CURVE                               expires 2120-13-31 
+SHOP_RESIDUAL_RESERVOIR                           expires 2120-13-31 
+SHOP_JUNCTION_BELOW_PLANT                         expires 2120-13-31 
+SHOP_XML_FORMAT                                   expires 2120-13-31 
+SHOP_FLEX_MIP                                     expires 2120-13-31 
+SHOP_RAMPING_UPGRADED                             expires 2120-13-31 
+SHOP_TACTICAL_LIMIT                               expires 2120-13-31 
+SHOP_VOW_IN_TRANS                                 expires 2120-13-31 
+SHOP_SUM_P_TIME_PERIOD                            expires 2120-13-31 
+SHOP_SUM_Q_TIME_STEP                              expires 2120-13-31 
+SHOP_INITIAL_STATE                                expires 2120-13-31 
+SHOP_RESOLVE_MC                                   expires 2120-13-31 
+SHOP_FEEDING_FEE                                  expires 2120-13-31 
+SHOP_TIME_VARIANT_GEN_MAX_PROD                    expires 2120-13-31 
+SHOP_CREEK_INTAKE                                 expires 2120-13-31 
+SHOP_CUT_CORRECTION                               expires 2120-13-31 
+SHOP_BLOCK_GENERATION                             expires 2120-13-31 
+SHOP_SCHEDULE_M3S                                 expires 2120-13-31 
+SHOP_SOFT_CONSTRAINTS                             expires 2120-13-31 
+SHOP_LP_HTML                                      expires 2120-13-31 
+SHOP_ACTIVE_CONSTRAINTS                           expires 2120-13-31 
+SHOP_GATE_RAMPING                                 expires 2120-13-31 
+SHOP_TIME_STARTCOST                               expires 2120-13-31 
+SHOP_CONTRACT                                     expires 2120-13-31 
+SHOP_RELTIME                                      expires 2120-13-31 
+SHOP_PELTON                                       expires 2120-13-31 
+SHOP_EBL_PLANT                                    expires 2120-13-31 
+SHOP_AFFINITY                                     expires 2120-13-31 
+SHOP_JUNCG_SERIES                                 expires 2120-13-31 
+SHOP_JUNC_GATE                                    expires 2120-13-31 
+SHOP_JUNCG_TWOWAY                                 expires 2120-13-31 
+SHOP_OVERFLOW_MIP                                 expires 2120-13-31 
+SHOP_RSV_HEAD_OPT                                 expires 2120-13-31 
+SHOP_OWNERSHIP                                    expires 2120-13-31 
+SHOP_LOSE_SPILL                                   expires 2120-13-31 
+SHOP_OVERFLOW_COST                                expires 2120-13-31 
+SHOP_MULTI_OBJECT                                 expires 2120-13-31 
+SHOP_MULTIPLE_LOAD_MARKETS                        expires 2120-13-31 
+SHOP_EXTRA_DATA                                   expires 2120-13-31 
+SHOP_STREAMING                                    expires 2120-13-31 
+SHOP_BUILD_PLANT_COMB                             expires 2120-13-31 
+SHOP_TIDES                                        expires 2120-13-31 
+SHOP_SCHED_MIN_MAX_BEST                           expires 2120-13-31 
+SHOP_RAMP_STEP                                    expires 2120-13-31 
+SHOP_DYN_FLEX                                     expires 2120-13-31 
+SHOP_MC                                           expires 2120-13-31 
+SHOP_GATE_FLOW_LIN_REL                            expires 2120-13-31 
+SHOP_SUM_P_TIME_STEP                              expires 2120-13-31 
+SHOP_AVERAGE_Q                                    expires 2120-13-31 
+SHOP_TIME_VARIANT_GEN_MIN_PROD                    expires 2120-13-31 
+SHOP_MULTI_STEP_WV                                expires 2120-13-31 
+SHOP_FREQ_RES_MARKET                              expires 2120-13-31 
+SHOP_PUMPING_CONSTRAINT                           expires 2120-13-31 
+SHOP_NONSEQ_AMPLITUDE_RSV_RAMP                    expires 2120-13-31 
+SHOP_ROT_RES_SCHED                                expires 2120-13-31 
+SHOP_POL_EFF_CURVE                                expires 2120-13-31 
+SHOP_BLOCK_MERGE                                  expires 2120-13-31 
+SHOP_RESERVE_GROUP                                expires 2120-13-31 
+SHOP_SOLVER_GUROBI                                expires 2120-13-31 
+SHOP_SIMULATION                                   expires 2120-13-31 
+SHOP_SOLVER_OSI                                   expires 2120-13-31 
+SHOP_MIP_TUNING                                   expires 2120-13-31 
+SHOP_PRESSURE_POINT                               expires 2120-13-31 
+SHOP_MIX_CUT_VV_PROTOTYPE                         expires 2120-13-31 
+SHOP_EXTENDED_CUT_FUNCTIONALITY                   expires 2120-13-31 
+SHOP_EXTENDED_PUMP_FUNCTIONALITY                  expires 2120-13-31 
+SHOP_SCENARIO_FUNCTIONALITY                       expires 2120-13-31 
+SHOP_RESERVE_CLUSTERING_FUNCTIONALITY             expires 2120-13-31 
+SHOP_DISCHARGE_GROUP_FUNCTIONALITY                expires 2120-13-31 
+SHOP_POWER_HEAD_OPTIMIZATION                      expires 2120-13-31 
+SHOP_ELEVATION_ADJUSTMENT                         expires 2120-13-31 
+SHOP_CONSUMPTION_FEE                              expires 2120-13-31 
+SHOP_BEST_PROFIT                                  expires 2120-13-31 
+SHOP_PRESSURE_LINK                                expires 2120-13-31 
+SHOP_SINTEF_INTERNAL                              expires 2120-13-31 
+SHOP_OPEN                                         expires 2120-13-31 
+SHOP_TUNNEL                                       expires 2120-13-31 
+
+End overview over input data:
+
+--------------*----------------*------------
+INFORMATION: 1002
+Parameter settings: (1. iteration).
+INFORMATION: 1003
+Full description. No curve fitting.
+INFORMATION: 1007
+Ramping on request (if ramping exceeded). 
+INFORMATION: 1009
+Head optimization on.
+INFORMATION: 1011
+1. iteration.
+--------------*----------------*------------
+INFORMATION: 1046
+Time used in CPLEX    0.00 s.
+--------------*----------------*------------

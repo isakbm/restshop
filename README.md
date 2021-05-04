@@ -1,17 +1,34 @@
 
+# ASSUMING YOU ARE STANDING AT ROOT OF REPO
 
-# Get python dependencies
+# Add missing dependencies from SHOP to `SDK/pyshop`
 
-- fastapi
-- uvicorn
-- python-jose
-- passlib
-- 
+- shop_cplex_interface.dll
+- shop_osi_interface.dll
+- shop_pybind.pyd
 
-# Start up the server (with --reload option if you're a developer)
+# Make sure you have a python environment
 
-uvicorn main:app
+Currently pyshop supports python versions 3.7.x and 3.8.x
 
-# Use the UI to get started
+`conda create -n SHOP python=3.7.9`
 
-localhost:<port>/docs
+# Activate your environment
+
+`conda activate SHOP`
+
+# Install pyshop in editable mode
+
+`pip install -e SDK`
+
+# Install shop_rest in editable mode
+
+`pip install -e .`
+
+# Start up the server
+
+uvicorn main:app --reload
+
+# Use the SwaggerUI to play around with requests
+
+Open this link -> [localhost:8000/docs](localhost:8000/docs)

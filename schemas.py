@@ -9,7 +9,7 @@ from fastapi import HTTPException
 import numpy as np
 import pandas as pd
 
-from src.sessions import SessionManager
+from sessions import SessionManager
 
 dummy_user = '__dummy_user__'
 SessionManager.add_user_session('__dummy_user__', None)
