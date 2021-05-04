@@ -27,7 +27,7 @@ Currently pyshop supports python versions 3.7.x and 3.8.x
 
 # Start up the server
 
-uvicorn main:app --reload
+`uvicorn main:app --reload`
 
 # Use the SwaggerUI to play around with requests
 
