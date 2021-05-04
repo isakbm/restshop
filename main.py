@@ -327,7 +327,7 @@ async def create_or_modify_existing_model_object_instance(
                     'x_values': [10.0, 20.0, 30.0],
                     'y_values': [42.0, 43.0, 45.0]
                 },
-                'inflow_cut_coeffs': {
+                'water_value_input': {
                     '0.0': {
                         'x_values': [10.0, 9.0, 8.0],
                         'y_values': [42.0, 20.0, 10.0]
@@ -371,7 +371,7 @@ async def create_or_modify_existing_model_object_instance(
                     try:
                         time_series: TimeSeries = v # time_series
                         # index, values = zip(*time_series.values.items())
-                        index, values = time_series.timestamps, time_series.values
+                        index, values = time_series.timestamps, np.transpose(time_series.values)
                         df = pd.DataFrame(index=index, data=values)
                         model_object[k].set(df)
                     except Exception as e:
