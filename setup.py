@@ -1,15 +1,38 @@
+
 from setuptools import setup
+from setuptools.command.install import install
+from setuptools.command.sdist import sdist
+
+from restshop.__init__ import __version__
+
+class InstallWrapper(install):
+
+  def run(self):
+
+    print("installing using install wrapper")
+
+    install.run(self)
+
+class SdistWrapper(sdist):
+  
+  def run(self):
+
+    print("installing using install wrapper")
+
+    copy_dependencies()
+    sdist.run(self)
+
 
 setup(
-    name='shop_rest',
-    version='14.0.0',
+    name='restshop',
+    version=__version__,
     author='SINTEF Energy Research',
     description='REST server for SHOP',
     packages=[
-        'shop_rest',
+        'restshop',
     ],
     package_dir={
-        'shop_rest': '.',
+        'restshop': 'restshop',
     },
     url='http://www.sintef.no/programvare/SHOP',
     author_email='support.energy@sintef.no',
@@ -22,5 +45,9 @@ setup(
       'python-jose',
       'passlib',
       'python-multipart'
-    ]
+    ],
+      cmdclass={
+      'install': InstallWrapper,
+      'sdist': SdistWrapper
+    }
 )

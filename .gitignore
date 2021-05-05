@@ -3,3 +3,4 @@
 *.dll
 **/*.egg-info/**
 *.pyd
+*.ipynb*
