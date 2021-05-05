@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from fastapi.openapi.models import SchemaBase
 
+import restshop
 from restshop.sessions import SessionManager
 from restshop.schemas import *
 
@@ -32,9 +33,9 @@ if __name__ == 'main':
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
     app = FastAPI(
-        title="SHOP",
-        description="SHOP RESTful, SINTEF Energy",
-        version='14.0.0a', # setup['version'],
+        title="REST SHOP",
+        description="SINTEF Energy",
+        version=restshop.__version__,
         openapi_tags=[
             {
                 'name': 'Authentication',
@@ -76,19 +77,18 @@ if __name__ == 'main':
         return session_id
 
     def check_that_time_resolution_is_set(session_id: int = Depends(get_session_id)):
-        is_set = SessionManager.get_user_session(test_user).shopsessions_time_resolution_is_set[session_id]
+        is_set = SessionManager.get_user_session(test_user).shop_sessions_time_resolution_is_set[session_id]
         if is_set == False:
             raise HTTPException(400, 'First you must set the time_resolution of the session')
         
 
     test_user = 'test_user'
     SessionManager.add_user_session('test_user', None)
-    SessionManager.add_shop_session(test_user)
+    SessionManager.add_shop_session(test_user, 'default_session')
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 
     def verify_password(plain_password, hashed_password):
         return pwd_context.verify(plain_password, hashed_password)
@@ -171,24 +171,29 @@ if __name__ == 'main':
 
     # ------- session
 
+    @app.post("/session", tags=['Session'])
+    async def create_session(s: Session = Body(Session(session_name='unnamed'), example={'name': 'unnamed'})):
+        s = SessionManager.add_shop_session(test_user, session_name=s.session_name)
+        return Session(session_id = s._id, session_name=s._name)
+
+
     @app.get("/sessions", response_model=List[Session], tags=['Session'])
     async def get_sessions():
-        sessions = [ Session(session_id = id) for id in SessionManager.list_shop_sessions(test_user)]
-        return sessions
+        return [
+            Session(
+                session_id = s._id,
+                session_name = s._name
+            ) for _, s in SessionManager.get_shop_sessions(test_user).items()
+        ]
 
 
     @app.get("/session", response_model=Session, tags=['Session'])
     async def get_session(session_id: int = Query(1)):
-        if session_id in SessionManager.list_shop_sessions(test_user):
-            returnSession(session_id = session_id)
+        if session_id in SessionManager.get_shop_sessions(test_user):
+            s = SessionManager.get_shop_session(test_user, session_id)
+            return Session(session_id = s._id, session_name = s._name)
         else:
-            return None
-
-
-    @app.post("/session", tags=['Session'])
-    async def create_session(session: Session):
-        session_id = SessionManager.add_shop_session(test_user)
-        return Session(session_id = session_id)
+            raise HTTPException(404, f'Session with id {{{session_id}}} not found')
 
 
     # --------- time_resolution
@@ -219,7 +224,7 @@ if __name__ == 'main':
         if (end <= start):
             raise HTTPException(400, 'end_time must be strictly greater than start_time')
 
-        SessionManager.get_shop_session(test_user, session_id, raises=True).set_time_resolution(
+        SessionManager.get_shop_session(test_user, session_id).set_time_resolution(
             starttime=time_resolution.start_time,
             endtime=time_resolution.end_time,
             timeunit=time_resolution.time_unit # TODO: also use time_resolution series
@@ -228,7 +233,7 @@ if __name__ == 'main':
 
         # store the fact that time_resolution has been set
         us = SessionManager.get_user_session(test_user)
-        us.shopsessions_time_resolution_is_set[session_id] = True
+        us.shop_sessions_time_resolution_is_set[session_id] = True
         return None
 
 
@@ -236,7 +241,7 @@ if __name__ == 'main':
     async def get_time_resolution(session_id = Depends(get_session_id)):
 
         try:
-            tr = SessionManager.get_shop_session(test_user, session_id, raises=True).get_time_resolution()
+            tr = SessionManager.get_shop_session(test_user, session_id).get_time_resolution()
         except HTTPException as e:
             raise e
         except Exception as e:
@@ -253,7 +258,7 @@ if __name__ == 'main':
 
     @app.get("/model", response_model=Model, response_model_exclude_unset=True, tags=['Model'])
     async def get_model_object_types(session_id = Depends(get_session_id)):
-        types = list(SessionManager.get_shop_session(test_user, session_id, raises=True).model._all_types)
+        types = list(SessionManager.get_shop_session(test_user, session_id).model._all_types)
         return Model(object_types = types)
 
     # ------ object_type
@@ -271,7 +276,7 @@ if __name__ == 'main':
 
         ot = SessionManager.get_model_object_type(test_user, session_id, object_type)
         instances = list(ot.get_object_names())
-        sess = SessionManager.get_shop_session(test_user, session_id, raises=True)
+        sess = SessionManager.get_shop_session(test_user, session_id)
         attribute_names: List[str] = list(sess.shop_api.GetObjectTypeAttributeNames(object_type))
         attribute_types: List[str] = list(sess.shop_api.GetObjectTypeAttributeDatatypes(object_type))
 
@@ -349,7 +354,7 @@ if __name__ == 'main':
         session_id = Depends(get_session_id)
         ):
         
-        session = SessionManager.get_shop_session(test_user, session_id, raises=True)
+        session = SessionManager.get_shop_session(test_user, session_id)
         try:
             object_generator = session.model[object_type]
         except Exception as e:
@@ -363,7 +368,7 @@ if __name__ == 'main':
 
         model_object = session.model[object_type][object_name]
 
-        if object_instance.attributes:
+        if object_instance and object_instance.attributes:
             for (k,v) in object_instance.attributes.items():
 
                 try:

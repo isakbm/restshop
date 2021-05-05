@@ -44,7 +44,10 @@ setup(
       'uvicorn',
       'python-jose',
       'passlib',
-      'python-multipart'
+      'python-multipart',
+      'pytest',
+      'pytest-order',
+      'requests'
     ],
       cmdclass={
       'install': InstallWrapper,

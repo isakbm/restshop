@@ -13,10 +13,19 @@ from .shopcore.shop_api import get_time_resolution
 class ShopSession(object):
     # Class for handling a SHOP session through the python API.
 
-    def __init__(self, license_path='', silent=True, log_file='', solver_path='', suppress_log=False, log_gets=True):
+    def __init__(self, license_path='', silent=True, log_file='', solver_path='', suppress_log=False, log_gets=True, name='unnamed', id=1):
         # Initialize a new SHOP session
         #
         # @param license_path The path where the license file, solver and solver interface are located
+        self._license_path = license_path
+        self._silent = silent
+        self._log_file = log_file
+        self._solver_path = solver_path
+        self._suppress_log = suppress_log
+        self._log_gets = log_gets
+        self._name = name
+        self._id = id
+
         if license_path:
             os.environ['ICC_COMMAND_PATH'] = license_path
         import pyshop.shop_pybind as pb

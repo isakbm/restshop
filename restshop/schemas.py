@@ -13,7 +13,7 @@ from .sessions import SessionManager
 
 dummy_user = '__dummy_user__'
 SessionManager.add_user_session('__dummy_user__', None)
-SessionManager.add_shop_session(dummy_user)
+SessionManager.add_shop_session(dummy_user, 'default_session')
 
 class StrEnum(str, Enum):
     pass
@@ -49,8 +49,8 @@ class Item(BaseModel):
 # Session
 
 class Session(BaseModel):
-    session_id: int = Field(1, description="unique session identifier per user session")
-    example_option: Optional[str] = None
+    session_id: Optional[int] = Field(1, description='unique session identifier per user session')
+    session_name: Optional[str] = Field('unnamed', description='name of session')
 
 # Commands
 
@@ -223,7 +223,7 @@ class ObjectAttribute(BaseModel):
 class ObjectInstance(BaseModel):
     object_name: str = Field('example_res', description='name of instance')
     object_type: str = Field('reservoir', description='type of instance')
-    attributes: Optional[Dict[str, AttributeValue]] = Field(None, description='attributes that can be set on the given object_type')
+    attributes: Dict[str, AttributeValue] = Field({}, description='attributes that can be set on the given object_type')
 
 class ObjectType(BaseModel):
     object_type: str = Field(description='name of the object_type')
