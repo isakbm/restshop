@@ -37,6 +37,9 @@ Currently pyshop supports python versions 3.7.x and 3.8.x
 
 Open this link -> [localhost:8000/docs](localhost:8000/docs)
 
+![swagger-ui](swagger-ui.png "swagger-ui")
+
+
 # Debug using vscode
 
 Hit F5 and choose FastAPI
