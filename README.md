@@ -25,6 +25,10 @@ Currently pyshop supports python versions 3.7.x and 3.8.x
 
 `pip install -e .`
 
+# Test the server without starting it
+
+`pytest`
+
 # Start up the server
 
 `uvicorn main:app --reload`
@@ -32,3 +36,9 @@ Currently pyshop supports python versions 3.7.x and 3.8.x
 # Use the SwaggerUI to play around with requests
 
 Open this link -> [localhost:8000/docs](localhost:8000/docs)
+
+# Debug using vscode
+
+Hit F5 and choose FastAPI
+
+![vscode dropdown F5](debug_vscode_dropdown.png "vscode dropdown F5")
