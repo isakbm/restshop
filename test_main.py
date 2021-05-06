@@ -317,6 +317,8 @@ def test_get_connections():
     # TODO: connection output is a mess ... SHOP's fault?
     print(json.dumps(response.json(), indent=4))
 
+    # raise Exception("dummy")
+
     # assert response.json() == [
     #     {
     #         'from_object': {'object_name': 'r1', 'object_type': 'reservoir'},

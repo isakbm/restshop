@@ -210,6 +210,7 @@ def new_attribute_type_name_from_old(name: str) -> ObjectAttributeTypeEnum:
         'int': ObjectAttributeTypeEnum.integer,
         'double': ObjectAttributeTypeEnum.float,
         'str': ObjectAttributeTypeEnum.string,
+        'string': ObjectAttributeTypeEnum.string,
         'double_array': ObjectAttributeTypeEnum.float_array,
         'int_array': ObjectAttributeTypeEnum.integer_array,
         'xy': ObjectAttributeTypeEnum.Curve,
@@ -305,10 +306,10 @@ def serialize_model_object_attribute(attribute: Any) -> AttributeValue:
         return str(value)
 
     if attribute_type == ObjectAttributeTypeEnum.float_array:
-        return str(value) # TODO: fixme
+        return np.array(value, dtype=float).tolist()
 
     if attribute_type == ObjectAttributeTypeEnum.integer_array:
-        return str(value) # TODO: fixme
+        return np.array(value, dtype=int).tolist()
 
     if attribute_type == ObjectAttributeTypeEnum.TimeSeries:
 

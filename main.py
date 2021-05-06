@@ -24,6 +24,8 @@ import numpy as np
 def shop_session(user_name: str, session_id: str):
     return SessionManager.get_shop_session(user_name, session_id)
 
+api_description = """ """
+
 if __name__ == 'main':
 
     # to get a string like this run:
@@ -34,7 +36,7 @@ if __name__ == 'main':
 
     app = FastAPI(
         title="REST SHOP",
-        description="SINTEF Energy",
+        description=api_description,
         version=restshop.__version__,
         openapi_tags=[
             {
@@ -324,7 +326,8 @@ if __name__ == 'main':
     # ------ object_name
 
     @app.put("/model/{object_type}",
-        response_model=ObjectInstance, dependencies=[Depends(check_that_time_resolution_is_set)],
+        response_model=ObjectInstance,
+        dependencies=[Depends(check_that_time_resolution_is_set)],
         response_model_exclude_unset=True, tags=['Model'])
     async def create_or_modify_existing_model_object_instance(
         object_type: ObjectTypeEnum,
@@ -374,61 +377,65 @@ if __name__ == 'main':
                 try:
                     datatype = model_object[k].info()['datatype']
                 except Exception as e:
-                    http_raise_internal(f'unknown object_attribute {{{k}}} for object_type {{{object_type}}}', e)
+                    http_raise_internal(f'unknown object_attribute {k} for object_type {object_type}', e)
 
-                try:
-                    if datatype == 'txy':
-                        try:
-                            time_series: TimeSeries = v # time_series
-                            # index, values = zip(*time_series.values.items())
-                            index, values = time_series.timestamps, np.transpose(time_series.values)
-                            df = pd.DataFrame(index=index, data=values)
-                            model_object[k].set(df)
-                        except Exception as e:
-                            http_raise_internal(f'trouble setting {{{datatype}}} ', e)
+                if datatype == 'txy':
 
-                    elif datatype == 'xy':
-                        try:
-                            curve: Curve = v # curve
-                            ser = pd.Series(index=curve.x_values, data=curve.y_values)
-                            model_object[k].set(ser)
-                        except Exception as e:
-                            http_raise_internal(f'trouble setting {{{datatype}}} ', e)
+                    # convert scalar values to timestamp
+                    if type(v) == float or type(v) == int:
+                        start_time = shop_session(test_user, session_id).get_time_resolution()['starttime']
+                        v = TimeSeries(
+                            timestamps=[start_time],
+                            values=[[v]]
+                        )
+                    try:
+                        time_series: TimeSeries = v # time_series
+                        # index, values = zip(*time_series.values.items())
+                        index, values = time_series.timestamps, np.transpose(time_series.values)
+                        df = pd.DataFrame(index=index, data=values)
+                        model_object[k].set(df)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
-                    elif datatype in ['xy_array', 'xyn']:
-                        try:
-                            curves: OrderedDict[float, Curve] = v # OrderedDict[float, Curve]
-                            ser_list = []
-                            for ref, curve in curves.items():
-                                ser_list += [pd.Series(index=curve.x_values, data=curve.y_values, name=ref)]
-                            model_object[k].set(ser_list)
-                        except Exception as e:
-                            http_raise_internal(f'trouble setting {{{datatype}}} ', e)
+                elif datatype == 'xy':
+                    try:
+                        curve: Curve = v # curve
+                        ser = pd.Series(index=curve.x_values, data=curve.y_values)
+                        model_object[k].set(ser)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
-                    elif datatype == 'xyt':
-                        try:
-                            curves: OrderedDict[datetime, Curve] = v
-                            ser_list = []
-                            for ref, curve in curves.items():
-                                ser_list += [pd.Series(index=curve.x_values, data=curve.y_values, name=ref)]
-                            model_object[k].set(ser_list)
-                        except Exception as e:
-                            http_raise_internal(f'trouble setting {{{datatype}}} ', e)
-                        
-                    elif datatype == 'double':
-                        model_object[k].set(float(v))
+                elif datatype in ['xy_array', 'xyn']:
+                    try:
+                        curves: OrderedDict[float, Curve] = v # OrderedDict[float, Curve]
+                        ser_list = []
+                        for ref, curve in curves.items():
+                            ser_list += [pd.Series(index=curve.x_values, data=curve.y_values, name=ref)]
+                        model_object[k].set(ser_list)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
-                    elif datatype == 'int':
-                        model_object[k].set(int(v))
+                elif datatype == 'xyt':
+                    try:
+                        curves: OrderedDict[datetime, Curve] = v
+                        ser_list = []
+                        for ref, curve in curves.items():
+                            ser_list += [pd.Series(index=curve.x_values, data=curve.y_values, name=ref)]
+                        model_object[k].set(ser_list)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
+                    
+                elif datatype == 'double':
+                    model_object[k].set(float(v))
 
-                    else:
-                        try:
-                            model_object[k].set(v)
-                        except Exception as e:
-                            http_raise_internal(f'trouble setting {{{datatype}}} ', e)
+                elif datatype == 'int':
+                    model_object[k].set(int(v))
 
-                except:
-                    raise HTTPException(400, f'Wrong attribute name {k} or invalid attribute value {v}')
+                else:
+                    try:
+                        model_object[k].set(v)
+                    except Exception as e:
+                        http_raise_internal(f'trouble setting {{{datatype}}} ', e)
 
         o = SessionManager.get_model_object_instance(test_user, session_id, object_type, object_name)
         return serialize_model_object_instance(o)
@@ -489,6 +496,19 @@ if __name__ == 'main':
             to = SessionManager.get_model_object_instance(test_user, session_id, to_type, to_name)
 
             fo.connect(connection_type=relation_type)[to_type][to_name].add()
+
+    @app.put("/connect/{from_type}/{from_name}/{to_type}/{to_name}", tags=['Connections'])
+    async def add_connection(
+        from_type: ObjectTypeEnum, from_name: str,
+        to_type: ObjectTypeEnum, to_name: str,
+        connection_type: RelationTypeEnum=Query(RelationTypeEnum.default),
+        session_id = Depends(get_session_id)):
+
+        connection_type = connection_type if connection_type != 'default' else ''
+
+        fo = SessionManager.get_model_object_instance(test_user, session_id, from_type, from_name)
+        to = SessionManager.get_model_object_instance(test_user, session_id, to_type, to_name)
+        fo.connect(connection_type=connection_type)[to_type][to_name].add()
 
     # ------ shop commands
 

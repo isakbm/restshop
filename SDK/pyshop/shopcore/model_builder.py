@@ -217,7 +217,7 @@ class AttributeBuilderObject(object):
         direction = direction.lower()
         relation_type = relation_type.lower()
         relation_category = relation_category.lower()
-        if direction not in ["both", "input", "output"]:
+        if direction not in ["both", "input", "output"]:     
             raise ValueError('Unknown direction, valid values are "both", "input" and "output"')
         if relation_category not in ["both", "physical", "logical"]:
             raise ValueError('Unknown relation_category, valid values are "both", "physical" and "logical"')
