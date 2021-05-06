@@ -33,7 +33,7 @@
 
 `python -c "import pyshop; pyshop.ShopSession(); print('ok')"`
 
-> **NOTE**: You should see `ok` printed. If you get a bunch of text followed by `ImportError: DLL ...` then check you python version, and change to 3.7 if it was 3.8 and vice-versa.
+> **NOTE**: You should see `ok` printed. If you get a bunch of text followed by `ImportError: DLL ...` then check your python version `python --version`. Go back to step 3 and try with another python version, for example 3.8 <-> 3.7.
 
 # 7 Install shop_rest in editable mode
 
