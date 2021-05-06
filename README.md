@@ -15,8 +15,9 @@
 
 # 3 Make sure you have a python environment
 
-Currently pyshop supports python versions 3.7.x and 3.8.x.
-Be aware that python version must match same as that used to build `shop_pybind.pyd` from SHOP.
+> **NOTE**: Currently pyshop supports python versions 3.7.x and 3.8.x. The python version must match the one used when building `shop_pybind.pyd` from SHOP.
+
+> **NOTE**: It is recommended to create a new environment, you don't have to call it "SHOP". Even though it is possible to reuse an existing environment, this is not recommended.
 
 `conda create -n SHOP python=3.7`
 
@@ -28,26 +29,31 @@ Be aware that python version must match same as that used to build `shop_pybind.
 
 `pip install -e SDK`
 
-# 6 Install shop_rest in editable mode
+# 6 Test pyshop installation
+
+`python -c "import pyshop; pyshop.ShopSession(); print('ok')"`
+
+> **NOTE**: You should see `ok` printed. If you get a bunch of text followed by `ImportError: DLL ...` then check you python version, and change to 3.7 if it was 3.8 and vice-versa.
+
+# 7 Install shop_rest in editable mode
 
 `pip install -e .`
 
-# 7 Test the server without starting it
+# 8 Test the server without starting it
 
 `pytest`
 
-# 8 Start up the server
+# 9 Start up the server
 
 `uvicorn main:app --reload`
 
-# 9 Use the SwaggerUI to play around with requests
+# 10 Use the SwaggerUI to play around with requests
 
 Open this link -> [localhost:8000/docs](localhost:8000/docs)
 
 ![swagger-ui](swagger-ui.png "swagger-ui")
 
-
-# 10 Debug using vscode
+# 11 Debug using vscode
 
 Hit F5 and choose FastAPI
 
