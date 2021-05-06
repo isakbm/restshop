@@ -3,6 +3,8 @@
 
 # Add missing dependencies from SHOP/SDK/pyshop to `SDK/pyshop`
 
+> Use version 14.0.0 of SHOP to copy these files from.
+
 - shop_cplex_interface.dll
 - shop_osi_interface.dll
 - shop_pybind.pyd
