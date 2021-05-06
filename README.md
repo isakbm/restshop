@@ -1,7 +1,7 @@
 
 # ASSUMING YOU ARE STANDING AT ROOT OF REPO
 
-# Add missing dependencies from SHOP to `SDK/pyshop`
+# Add missing dependencies from SHOP/SDK/pyshop to `SDK/pyshop`
 
 - shop_cplex_interface.dll
 - shop_osi_interface.dll
@@ -9,9 +9,10 @@
 
 # Make sure you have a python environment
 
-Currently pyshop supports python versions 3.7.x and 3.8.x
+Currently pyshop supports python versions 3.7.x and 3.8.x.
+Be aware that python version must match same as that used to build `shop_pybind.pyd` from SHOP.
 
-`conda create -n SHOP python=3.7.9`
+`conda create -n SHOP python=3.7`
 
 # Activate your environment
 

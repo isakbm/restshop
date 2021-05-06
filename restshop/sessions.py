@@ -113,15 +113,15 @@ class SessionManager:
         us.update_expiry_time(expires)
     
     @staticmethod
-    def get_model_object_type(username: str, session_id: int, object_type: str):
+    def get_model_object_generator(username: str, session_id: int, object_type: str):
         model = SessionManager.get_shop_session(username, session_id).model
         if object_type not in model._all_types:
             raise HTTPException(400, f'object_type {{{object_type}}} is not implemented.')
         return model[object_type]
             
     @staticmethod
-    def get_model_object_type_object_name(username: str, session_id: int, object_type: str, object_name: str):
-        model_object_type = SessionManager.get_model_object_type(username, session_id, object_type)
-        if object_name not in model_object_type._names:
+    def get_model_object_instance(username: str, session_id: int, object_type: str, object_name: str):
+        model_object_generator = SessionManager.get_model_object_generator(username, session_id, object_type)
+        if object_name not in model_object_generator._names:
             raise HTTPException(400, f'object_name {{{object_name}}} is not an instance of object_type {{{object_type}}}.')
-        return model_object_type[object_name]
+        return model_object_generator[object_name]

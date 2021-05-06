@@ -11,9 +11,12 @@ import pandas as pd
 
 from .sessions import SessionManager
 
+# this dummy user and session is used to dynamically get enums and other metadata from a live ShopSession
+# TODO: make this cleaner, ... wrap in some init construct or something.
 dummy_user = '__dummy_user__'
 SessionManager.add_user_session('__dummy_user__', None)
 SessionManager.add_shop_session(dummy_user, 'default_session')
+_shop_session = SessionManager.get_shop_session(dummy_user, 1)
 
 class StrEnum(str, Enum):
     pass
@@ -64,8 +67,37 @@ class CommandStatus(BaseModel):
 ApiCommandEnum = StrEnum(
     'ApiCommandEnum',
     names={
-        name: name for name in filter(lambda x : x[0] != '_', SessionManager.get_shop_session(dummy_user, 1).shop_api.__dir__())
+        name: name for name in filter(lambda x : x[0] != '_', _shop_session.shop_api.__dir__())
     }
+)
+
+SHOP_OBJEC_TYPE_NAMES = _shop_session.model._all_types
+
+SHOP_RELATION_TYPES = [
+    _shop_session.shop_api.GetValidRelationTypes(object_type)
+    for object_type in SHOP_OBJEC_TYPE_NAMES
+]
+
+# flattens
+SHOP_RELATION_TYPES = [e for sub in SHOP_RELATION_TYPES for e in sub ]
+
+ObjectTypeEnum = StrEnum(
+    'ObjectTypeEnum',
+    names={
+        name: name for name in SHOP_OBJEC_TYPE_NAMES
+    }
+)
+
+RelationTypeEnum = StrEnum(
+    'RelationTypeEnum',
+    names={
+        name: name for name in (['default'] + SHOP_RELATION_TYPES)
+    }
+)
+
+RelationDirectionEnum = StrEnum(
+    'RelationDirectionEnum',
+    names={name: name for name in ['both', 'input', 'output']}
 )
 
 class ApiCommands(BaseModel):
@@ -157,13 +189,6 @@ class Curve(BaseModel):
 # - txy, #ttxy     <-> TimeSeries
 #
 
-ObjectTypeEnum = StrEnum(
-    'ObjectTypeEnum',
-    names={
-        name: name for name in SessionManager.get_shop_session(dummy_user, 1).model._all_types
-    }
-)
-
 class ObjectAttributeTypeEnum(str, Enum):
     boolean = 'boolean'
     integer = 'integer'
@@ -240,7 +265,8 @@ class ObjectID(BaseModel):
 class Connection(BaseModel):
     from_object: ObjectID
     to_object: ObjectID
-    relation_type: str = Field(desription="relation type")
+    relation_type: RelationTypeEnum = Field(RelationTypeEnum.default, desription="relation type")
+    relation_direction: RelationDirectionEnum = RelationDirectionEnum.both
 
 # Model
 

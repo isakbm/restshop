@@ -21,8 +21,8 @@ from fastapi import Path, Header
 import pandas as pd
 import numpy as np
 
-
-# from setup import setup
+def shop_session(user_name: str, session_id: str):
+    return SessionManager.get_shop_session(user_name, session_id)
 
 if __name__ == 'main':
 
@@ -190,7 +190,7 @@ if __name__ == 'main':
     @app.get("/session", response_model=Session, tags=['Session'])
     async def get_session(session_id: int = Query(1)):
         if session_id in SessionManager.get_shop_sessions(test_user):
-            s = SessionManager.get_shop_session(test_user, session_id)
+            s = shop_session(test_user, session_id)
             return Session(session_id = s._id, session_name = s._name)
         else:
             raise HTTPException(404, f'Session with id {{{session_id}}} not found')
@@ -224,7 +224,7 @@ if __name__ == 'main':
         if (end <= start):
             raise HTTPException(400, 'end_time must be strictly greater than start_time')
 
-        SessionManager.get_shop_session(test_user, session_id).set_time_resolution(
+        shop_session(test_user, session_id).set_time_resolution(
             starttime=time_resolution.start_time,
             endtime=time_resolution.end_time,
             timeunit=time_resolution.time_unit # TODO: also use time_resolution series
@@ -241,7 +241,7 @@ if __name__ == 'main':
     async def get_time_resolution(session_id = Depends(get_session_id)):
 
         try:
-            tr = SessionManager.get_shop_session(test_user, session_id).get_time_resolution()
+            tr = shop_session(test_user, session_id).get_time_resolution()
         except HTTPException as e:
             raise e
         except Exception as e:
@@ -258,7 +258,7 @@ if __name__ == 'main':
 
     @app.get("/model", response_model=Model, response_model_exclude_unset=True, tags=['Model'])
     async def get_model_object_types(session_id = Depends(get_session_id)):
-        types = list(SessionManager.get_shop_session(test_user, session_id).model._all_types)
+        types = list(shop_session(test_user, session_id).model._all_types)
         return Model(object_types = types)
 
     # ------ object_type
@@ -274,9 +274,9 @@ if __name__ == 'main':
         if attribute_filter != '*':
             raise HTTPException(500, 'setting attribute_filter != * is not support yet')
 
-        ot = SessionManager.get_model_object_type(test_user, session_id, object_type)
+        ot = SessionManager.get_model_object_generator(test_user, session_id, object_type)
         instances = list(ot.get_object_names())
-        sess = SessionManager.get_shop_session(test_user, session_id)
+        sess = shop_session(test_user, session_id)
         attribute_names: List[str] = list(sess.shop_api.GetObjectTypeAttributeNames(object_type))
         attribute_types: List[str] = list(sess.shop_api.GetObjectTypeAttributeDatatypes(object_type))
 
@@ -354,7 +354,7 @@ if __name__ == 'main':
         session_id = Depends(get_session_id)
         ):
         
-        session = SessionManager.get_shop_session(test_user, session_id)
+        session = shop_session(test_user, session_id)
         try:
             object_generator = session.model[object_type]
         except Exception as e:
@@ -430,7 +430,7 @@ if __name__ == 'main':
                 except:
                     raise HTTPException(400, f'Wrong attribute name {k} or invalid attribute value {v}')
 
-        o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
+        o = SessionManager.get_model_object_instance(test_user, session_id, object_type, object_name)
         return serialize_model_object_instance(o)
 
     @app.get("/model/{object_type}", response_model=ObjectInstance, tags=['Model'])
@@ -444,7 +444,7 @@ if __name__ == 'main':
         if attribute_filter != '*':
             raise HTTPException(500, 'setting attribute_filter != * is not support yet')
 
-        o = SessionManager.get_model_object_type_object_name(test_user, session_id, object_type, object_name)
+        o = SessionManager.get_model_object_instance(test_user, session_id, object_type, object_name)
         return serialize_model_object_instance(o)
 
 
@@ -452,13 +452,43 @@ if __name__ == 'main':
 
 
     @app.get("/connections", response_model=List[Connection], tags=['Connections'])
-    async def get_connection(session_id = Depends(get_session_id)):
-        return List[Connection]
+    async def get_connections(session_id = Depends(get_session_id)):
+
+        connections = []
+
+        for object_type in shop_session(test_user, session_id).model._all_types:
+            generator = SessionManager.get_model_object_generator(test_user, session_id, object_type)
+            for object_name in generator.get_object_names():
+                from_object = generator[object_name]
+                for relation_direction in RelationDirectionEnum:
+                    for relation_type in RelationTypeEnum:
+                        for r in from_object.get_relations(
+                            direction=relation_direction,
+                            relation_type=relation_type
+                        ):
+                            to_object = serialize_model_object_instance(r)
+                            connections += [Connection(
+                                from_object=serialize_model_object_instance(from_object),
+                                to_object=to_object,
+                                relation_type=relation_type,
+                                relation_direction=relation_direction,
+                            )]
+
+        return connections
 
     @app.put("/connections", tags=['Connections'])
-    async def add_connection(connections: List[Connection], session_id = Depends(get_session_id)):
-        pass
+    async def add_connections(connections: List[Connection], session_id = Depends(get_session_id)):
 
+        for connection in connections:
+
+            fo_type, fo_name = connection.from_object.object_type, connection.from_object.object_name
+            to_type, to_name = connection.to_object.object_type, connection.to_object.object_name
+            relation_type = connection.relation_type if connection.relation_type != 'default' else ''
+
+            fo = SessionManager.get_model_object_instance(test_user, session_id, fo_type, fo_name)
+            to = SessionManager.get_model_object_instance(test_user, session_id, to_type, to_name)
+
+            fo.connect(connection_type=relation_type)[to_type][to_name].add()
 
     # ------ shop commands
 
@@ -471,15 +501,13 @@ if __name__ == 'main':
 
     @app.get("/internal", response_model=ApiCommands, tags=['__internals'])
     async def get_available_internal_methods(session_id = Depends(get_session_id)):
-        shopsession = SessionManager.get_shop_session(test_user, session_id)
-        command_types = shopsession.shop_api.__dir__()
+        command_types = shop_session(test_user, session_id).shop_api.__dir__()
         command_types = list(filter(lambda x: x[0] != '_', command_types))
         return ApiCommands(command_types = command_types)
 
     @app.get("/internal/{command}", response_model=ApiCommandDescription, tags=['__internals'])
     async def get_internal_method_description(command: ApiCommandEnum, session_id = Depends(get_session_id)):
-        shopsession = SessionManager.get_shop_session(test_user, session_id)
-        doc = getattr(shopsession.shop_api, command).__doc__
+        doc = getattr(shop_session(test_user, session_id).shop_api, command).__doc__
         return ApiCommandDescription(description = str(doc))
 
     @app.post("/internal/{command}", response_model=CommandStatus, tags=['__internals'])

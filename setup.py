@@ -3,25 +3,11 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
-from restshop.__init__ import __version__
+__version__ = 'unknown'
 
-class InstallWrapper(install):
-
-  def run(self):
-
-    print("installing using install wrapper")
-
-    install.run(self)
-
-class SdistWrapper(sdist):
-  
-  def run(self):
-
-    print("installing using install wrapper")
-
-    copy_dependencies()
-    sdist.run(self)
-
+with open('restshop/__init__.py', 'r') as f:
+  line = f.readline()
+  __version__ = line.split(' = ')[1][1:-1]
 
 setup(
     name='restshop',
@@ -48,9 +34,5 @@ setup(
       'pytest',
       'pytest-order',
       'requests'
-    ],
-      cmdclass={
-      'install': InstallWrapper,
-      'sdist': SdistWrapper
-    }
+    ]
 )

@@ -159,6 +159,81 @@ def test_put_model_object_instance_no_body():
     assert response.status_code == 200
     o = ObjectInstance(**response.json()) # Thanks to pydantic this raises exceptions if response is wrong
 
+expected_b = ObjectInstance(
+    attributes={
+        'vol_head': Curve(**{
+            'x_unit': 'MM3', 'y_unit': 'METER',
+            'y_values': [42.0, 43.0, 45.0],
+            'x_values': [10.0, 20.0, 30.0]
+        }),
+        'water_value_input': {
+            '0.0': Curve(**{
+                'x_unit': 'MM3', 'y_unit': 'NOK/MM3',
+                'x_values': [10.0, 9.0, 8.0],
+                'y_values': [42.0, 20.0, 10.0]
+            })
+        },
+        'inflow': TimeSeries(**{
+            'unit': 'M3/S',
+            'name': 'inflow',
+            'timestamps': [
+                '2021-05-02T00:00:00+00:00',
+                '2021-05-02T01:00:00+00:00',
+                '2021-05-02T02:00:00+00:00',
+                '2021-05-02T03:00:00+00:00',
+                '2021-05-02T04:00:00+00:00',
+                '2021-05-02T05:00:00+00:00',
+                '2021-05-02T06:00:00+00:00',
+                '2021-05-02T07:00:00+00:00',
+                '2021-05-02T08:00:00+00:00',
+                '2021-05-02T09:00:00+00:00',
+                '2021-05-02T10:00:00+00:00',
+                '2021-05-02T11:00:00+00:00',
+                '2021-05-02T12:00:00+00:00',
+                '2021-05-02T13:00:00+00:00',
+                '2021-05-02T14:00:00+00:00',
+                '2021-05-02T15:00:00+00:00',
+                '2021-05-02T16:00:00+00:00',
+                '2021-05-02T17:00:00+00:00',
+                '2021-05-02T18:00:00+00:00',
+                '2021-05-02T19:00:00+00:00',
+                '2021-05-02T20:00:00+00:00',
+                '2021-05-02T21:00:00+00:00',
+                '2021-05-02T22:00:00+00:00',
+                '2021-05-02T23:00:00+00:00'
+            ],
+            'values': [
+                [
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50,
+                50
+                ]
+            ]
+        })
+    }
+)
+
 @pytest.mark.order(14)
 def test_put_model_object_instance_with_body():
 
@@ -181,81 +256,6 @@ def test_put_model_object_instance_with_body():
         }
     )
 
-    expected_b = ObjectInstance(
-        attributes={
-            'vol_head': Curve(**{
-                'x_unit': 'MM3', 'y_unit': 'METER',
-                'y_values': [42.0, 43.0, 45.0],
-                'x_values': [10.0, 20.0, 30.0]
-            }),
-            'water_value_input': {
-                '0.0': Curve(**{
-                    'x_unit': 'MM3', 'y_unit': 'NOK/MM3',
-                    'x_values': [10.0, 9.0, 8.0],
-                    'y_values': [42.0, 20.0, 10.0]
-                })
-            },
-            'inflow': TimeSeries(**{
-                'unit': 'M3/S',
-                'name': 'inflow',
-                'timestamps': [
-                    '2021-05-02T00:00:00+00:00',
-                    '2021-05-02T01:00:00+00:00',
-                    '2021-05-02T02:00:00+00:00',
-                    '2021-05-02T03:00:00+00:00',
-                    '2021-05-02T04:00:00+00:00',
-                    '2021-05-02T05:00:00+00:00',
-                    '2021-05-02T06:00:00+00:00',
-                    '2021-05-02T07:00:00+00:00',
-                    '2021-05-02T08:00:00+00:00',
-                    '2021-05-02T09:00:00+00:00',
-                    '2021-05-02T10:00:00+00:00',
-                    '2021-05-02T11:00:00+00:00',
-                    '2021-05-02T12:00:00+00:00',
-                    '2021-05-02T13:00:00+00:00',
-                    '2021-05-02T14:00:00+00:00',
-                    '2021-05-02T15:00:00+00:00',
-                    '2021-05-02T16:00:00+00:00',
-                    '2021-05-02T17:00:00+00:00',
-                    '2021-05-02T18:00:00+00:00',
-                    '2021-05-02T19:00:00+00:00',
-                    '2021-05-02T20:00:00+00:00',
-                    '2021-05-02T21:00:00+00:00',
-                    '2021-05-02T22:00:00+00:00',
-                    '2021-05-02T23:00:00+00:00'
-                ],
-                'values': [
-                    [
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50,
-                    50
-                    ]
-                ]
-            })
-        }
-    )
-
     response = client.put(
         '/model/reservoir?object_name=test_res',
         data=a.json()
@@ -264,3 +264,62 @@ def test_put_model_object_instance_with_body():
     b = ObjectInstance(**response.json()) # Thanks to pydantic this raises exceptions if response is wrong
     for attr, expected_value in expected_b.attributes.items():
         assert b.attributes[attr] == expected_value
+
+@pytest.mark.order(15)
+def test_get_model_object_instance():
+    response = client.get('/model/reservoir?object_name=test_res')
+    assert response.status_code == 200
+    b = ObjectInstance(**response.json()) # Thanks to pydantic this raises exceptions if response is wrong
+    for attr, expected_value in expected_b.attributes.items():
+        assert b.attributes[attr] == expected_value
+
+@pytest.mark.order(16)
+def test_get_connections_nonexistent():
+    response = client.get('/connections')
+    assert response.status_code == 200
+    assert response.json() == []
+
+@pytest.mark.order(17)
+def test_put_model_object_instance_reservoir_r1():
+    response = client.put(
+        '/model/reservoir?object_name=r1',
+    )
+    assert response.status_code == 200
+    o = ObjectInstance(**response.json()) # Thanks to pydantic this raises exceptions if response is wrong
+
+@pytest.mark.order(18)
+def test_put_model_object_instance_plant_p1():
+    response = client.put(
+        '/model/plant?object_name=p1',
+    )
+    assert response.status_code == 200
+    o = ObjectInstance(**response.json()) # Thanks to pydantic this raises exceptions if response is wrong
+
+@pytest.mark.order(19)
+def test_put_connections():
+    response = client.put(
+        '/connections',
+        json=[
+            {
+                'from_object': {'object_type': 'reservoir', 'object_name': 'r1'},
+                'to_object': {'object_type': 'plant', 'object_name': 'p1'}
+            }
+        ]
+    )
+    assert response.status_code == 200
+    assert response.json() == None
+
+@pytest.mark.order(20)
+def test_get_connections():
+    response = client.get('/connections')
+    assert response.status_code == 200
+    
+    # TODO: connection output is a mess ... SHOP's fault?
+    print(json.dumps(response.json(), indent=4))
+
+    # assert response.json() == [
+    #     {
+    #         'from_object': {'object_name': 'r1', 'object_type': 'reservoir'},
+    #         'relation_direction': 'both',
+    #         'relation_type': 'de...: 'both', 'relation_type': 'connection_standard', 'to_object': {'object_name': 'r1', 'object_type': 'reservoir'}
+
