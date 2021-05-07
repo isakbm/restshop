@@ -58,6 +58,10 @@ if __name__ == 'main':
             {
                 'name': 'Connections',
                 'description': 'Configure connections between model objects',
+            },
+            {
+                'name': 'Simulation',
+                'description': 'Interact with the simulation using SHOP commands',
             }
         ]
     )
@@ -440,7 +444,7 @@ if __name__ == 'main':
         o = SessionManager.get_model_object_instance(test_user, session_id, object_type, object_name)
         return serialize_model_object_instance(o)
 
-    @app.get("/model/{object_type}", response_model=ObjectInstance, tags=['Model'])
+    @app.get("/model/{object_type}", response_model=ObjectInstance, dependencies=[Depends(check_that_time_resolution_is_set)], tags=['Model'])
     async def get_model_object_instance(
         object_type: ObjectTypeEnum,
         object_name: str = Query('example_reservoir'),
@@ -458,7 +462,7 @@ if __name__ == 'main':
     # ------ connection
 
 
-    @app.get("/connections", response_model=List[Connection], tags=['Connections'])
+    @app.get("/connections", response_model=List[Connection], dependencies=[Depends(check_that_time_resolution_is_set)], tags=['Connections'])
     async def get_connections(session_id = Depends(get_session_id)):
 
         connections = []
@@ -483,7 +487,7 @@ if __name__ == 'main':
 
         return connections
 
-    @app.put("/connections", tags=['Connections'])
+    @app.put("/connections", dependencies=[Depends(check_that_time_resolution_is_set)], tags=['Connections'])
     async def add_connections(connections: List[Connection], session_id = Depends(get_session_id)):
 
         for connection in connections:
@@ -497,7 +501,7 @@ if __name__ == 'main':
 
             fo.connect(connection_type=relation_type)[to_type][to_name].add()
 
-    @app.put("/connect/{from_type}/{from_name}/{to_type}/{to_name}", tags=['Connections'])
+    @app.put("/connect/{from_type}/{from_name}/{to_type}/{to_name}", dependencies=[Depends(check_that_time_resolution_is_set)], tags=['Connections'])
     async def add_connection(
         from_type: ObjectTypeEnum, from_name: str,
         to_type: ObjectTypeEnum, to_name: str,
@@ -512,7 +516,7 @@ if __name__ == 'main':
 
     # ------ shop commands
 
-    @app.post("/simulation/{command}", response_model=CommandStatus, tags=['Simulation'])
+    @app.post("/simulation/{command}", response_model=CommandStatus, dependencies=[Depends(check_that_time_resolution_is_set)], tags=['Simulation'])
     async def post_simulation_command(command: ShopCommandEnum, args: CommandArguments = None, session_id = Depends(get_session_id)):
 
         sess = shop_session(test_user, session_id)
@@ -522,24 +526,25 @@ if __name__ == 'main':
         except Exception as e:
             http_raise_internal('failed to execute simulation command', e)
         return CommandStatus(
+            message=('ok' if status else 'something went wrong ...'),
             status=status
         )
 
     # ------ internal methods
 
 
-    @app.get("/internal", response_model=ApiCommands, tags=['__internals'])
+    @app.get("/internal", response_model=ApiCommands, dependencies=[Depends(check_that_time_resolution_is_set)], tags=['__internals'])
     async def get_available_internal_methods(session_id = Depends(get_session_id)):
         command_types = shop_session(test_user, session_id).shop_api.__dir__()
         command_types = list(filter(lambda x: x[0] != '_', command_types))
         return ApiCommands(command_types = command_types)
 
-    @app.get("/internal/{command}", response_model=ApiCommandDescription, tags=['__internals'])
+    @app.get("/internal/{command}", dependencies=[Depends(check_that_time_resolution_is_set)], response_model=ApiCommandDescription, tags=['__internals'])
     async def get_internal_method_description(command: ApiCommandEnum, session_id = Depends(get_session_id)):
         doc = getattr(shop_session(test_user, session_id).shop_api, command).__doc__
         return ApiCommandDescription(description = str(doc))
 
-    @app.post("/internal/{command}", response_model=CommandStatus, tags=['__internals'])
+    @app.post("/internal/{command}", dependencies=[Depends(check_that_time_resolution_is_set)], response_model=CommandStatus, tags=['__internals'])
     async def call_internal_method(command: ApiCommandEnum, session_id = Depends(get_session_id)):
         return CommandStatus(message = 'ok')
 

@@ -3,6 +3,9 @@ from fastapi.testclient import TestClient
 from restshop.schemas import *
 from main import app
 
+import matplotlib.pyplot as plt
+import pandas as pd
+
 import json
 
 client = TestClient(app)
@@ -360,22 +363,110 @@ resp = client.put(
 
 assert resp.status_code == 200
 
-
 # rsv1.inflow.set(pd.DataFrame([101, 50], index=[starttime, starttime + pd.Timedelta(hours=1)]))
+
+resp = client.post(
+    '/simulation/start_sim',
+    json={
+        'options': [],
+        'values': ['3']
+    }
+)
+
+assert resp.status_code == 200
+
+resp = client.post(
+    '/simulation/set_code',
+    json={
+        'options': ['incremental'],
+        'values': ['3']
+    }
+)
+
+assert resp.status_code == 200
+
+resp = client.post(
+    '/simulation/start_sim',
+    json={
+        'options': [],
+        'values': ['3']
+    }
+)
+
+assert resp.status_code == 200
 
 # shop.start_sim([], ['3'])
 # shop.set_code(['incremental'], [])
 # shop.start_sim([], ['3'])
 
-# plt.title('Production and price')
-# plt.xlabel('Time')
-# plt.ylabel('Production [MW]')
+plt.title('Production and price')
+plt.xlabel('Time')
+plt.ylabel('Production [MW]')
+
+resp = client.get('/model/market/?object_name=Day_ahead')
+assert resp.status_code == 200
+market = resp.json()
+sale_price = market['attributes']['sale_price']
+ax = pd.Series(
+    index=sale_price['timestamps'],
+    data=np.array(sale_price['values']).flatten(),
+).plot(legend='Price', secondary_y=True)
 
 # ax = shop.model.market.Day_ahead.sale_price.get().plot(legend='Price', secondary_y=True)
+
+resp = client.get('/model/plant/?object_name=Plant1')
+assert resp.status_code == 200
+plant_1 = resp.json()
+
+resp = client.get('/model/plant/?object_name=Plant2')
+assert resp.status_code == 200
+plant_2 = resp.json()
+
+pd.Series(
+    index=plant_1['attributes']['production']['timestamps'],
+    data=np.array(plant_1['attributes']['production']['values']).flatten(),
+).plot(legend='Plant 1')
+
+pd.Series(
+    index=plant_2['attributes']['production']['timestamps'],
+    data=np.array(plant_2['attributes']['production']['values']).flatten(),
+).plot(legend='Plant 2')
+
+ax.set_ylabel('Price [NOK]')
+plt.show()
+
 # shop.model.plant.Plant1.production.get().plot(legend='Plant 1')
 # shop.model.plant.Plant2.production.get().plot(legend='Plant 2')
 # ax.set_ylabel('Price [NOK]')
 # plt.show()
+
+
+resp = client.get('/model/reservoir/?object_name=Reservoir1')
+assert resp.status_code == 200
+reservoir_1 = resp.json()
+
+resp = client.get('/model/reservoir/?object_name=Reservoir2')
+assert resp.status_code == 200
+reservoir_2 = resp.json()
+
+plt.figure(2)
+
+pd.Series(
+    index=reservoir_1['attributes']['inflow']['timestamps'],
+    data=np.array(reservoir_1['attributes']['inflow']['values']).flatten(),
+).plot(legend='Reservoir 1 - inflow')
+
+pd.Series(
+    index=reservoir_1['attributes']['storage']['timestamps'],
+    data=np.array(reservoir_1['attributes']['storage']['values']).flatten(),
+).plot(legend='Reservoir 1 - storage')
+
+pd.Series(
+    index=reservoir_2['attributes']['storage']['timestamps'],
+    data=np.array(reservoir_2['attributes']['storage']['values']).flatten(),
+).plot(legend='Reservoir 2 - storage')
+
+plt.show()
 
 # plt.figure(2)
 # prod = shop.model.reservoir.Reservoir1.inflow.get()

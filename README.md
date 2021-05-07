@@ -51,10 +51,10 @@
 
 Open this link -> [localhost:8000/docs](localhost:8000/docs)
 
-![swagger-ui](swagger-ui.png "swagger-ui")
+![swagger-ui](doc/swagger-ui.png "swagger-ui")
 
 # 11 Debug using vscode
 
 Hit F5 and choose FastAPI
 
-![vscode dropdown F5](debug_vscode_dropdown.png "vscode dropdown F5")
+![vscode dropdown F5](doc/debug_vscode_dropdown.png "vscode dropdown F5")
