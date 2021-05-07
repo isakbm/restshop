@@ -6,8 +6,6 @@ from main import app
 import matplotlib.pyplot as plt
 import pandas as pd
 
-import json
-
 client = TestClient(app)
 
 # ==================================
@@ -112,7 +110,7 @@ resp = client.put(
     }
 )
 
-assert resp.status_code == 200, json.dumps(resp.json(), indent=4)
+assert resp.status_code == 200
 
 
 resp = client.put(
