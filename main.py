@@ -513,8 +513,17 @@ if __name__ == 'main':
     # ------ shop commands
 
     @app.post("/simulation/{command}", response_model=CommandStatus, tags=['Simulation'])
-    async def post_simulation_command(command: Command, args: CommandArguments = None, session_id = Depends(get_session_id)):
-        return CommandStatus(message = 'ok')
+    async def post_simulation_command(command: ShopCommandEnum, args: CommandArguments = None, session_id = Depends(get_session_id)):
+
+        sess = shop_session(test_user, session_id)
+        sess._command = command
+        try:
+            status: bool = sess._execute_command(args.options, args.values) # does this return anything
+        except Exception as e:
+            http_raise_internal('failed to execute simulation command', e)
+        return CommandStatus(
+            status=status
+        )
 
     # ------ internal methods
 

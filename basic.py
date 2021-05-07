@@ -346,18 +346,20 @@ assert resp.status_code == 200
 # da.max_buy.set(9999)
 # da.max_sale.set(9999)
 
-# resp = client.put(
-#     '/model/reservoir?object_name=Reservoir1',
-#     json={
-#         'attributes': {
-#            'inflow': { # TimeSeries
-#                 'timestamps': [ ]
-#            }
-#         }
-#     }
-# )
+resp = client.put(
+    '/model/reservoir?object_name=Reservoir1',
+    json={
+        'attributes': {
+           'inflow': { # TimeSeries
+                'timestamps': [ start_time, (pd.Timestamp(start_time) + pd.Timedelta(hours=1)).isoformat() ],
+                'values': [[101, 50]]
+           }
+        }
+    }
+)
 
-# assert resp.status_code == 200
+assert resp.status_code == 200
+
 
 # rsv1.inflow.set(pd.DataFrame([101, 50], index=[starttime, starttime + pd.Timedelta(hours=1)]))
 

@@ -49,6 +49,50 @@ class Item(BaseModel):
     price: float
     tax: Optional[float] = None
 
+_SHOP_OBJECT_TYPE_NAMES = _shop_session.model._all_types
+_SHOP_RELATION_TYPES = [
+    _shop_session.shop_api.GetValidRelationTypes(object_type)
+    for object_type in _SHOP_OBJECT_TYPE_NAMES
+] # flattens
+_SHOP_RELATION_TYPES = [e for sub in _SHOP_RELATION_TYPES for e in sub ]
+_SHOP_COMMANDS = _shop_session._commands
+
+ApiCommandEnum = StrEnum(
+    'ApiCommandEnum',
+    names={
+        name: name for name in filter(lambda x : x[0] != '_', _shop_session.shop_api.__dir__())
+    }
+)
+
+# here we simply make sure start* commands come first in the enum giving the SwaggerUI better default
+_ordered_shop_commands = [ c for c in _SHOP_COMMANDS.keys() if c[0:5] == 'start']
+_ordered_shop_commands += [ c for c in _SHOP_COMMANDS.keys() if c[0:8] == 'set_code']
+_ordered_shop_commands += list(_SHOP_COMMANDS.keys()) # adding all of the rest is ok, repeats are automatically ignored by enum
+
+ShopCommandEnum = StrEnum(
+    'ShopCommandEnum',
+    names={ name:name for name in _ordered_shop_commands}
+)
+
+ObjectTypeEnum = StrEnum(
+    'ObjectTypeEnum',
+    names={
+        name: name for name in _SHOP_OBJECT_TYPE_NAMES
+    }
+)
+
+RelationTypeEnum = StrEnum(
+    'RelationTypeEnum',
+    names={
+        name: name for name in (['default'] + _SHOP_RELATION_TYPES)
+    }
+)
+
+RelationDirectionEnum = StrEnum(
+    'RelationDirectionEnum',
+    names={name: name for name in ['both', 'input', 'output']}
+)
+
 # Session
 
 class Session(BaseModel):
@@ -62,43 +106,8 @@ class Commands(BaseModel):
 
 class CommandStatus(BaseModel):
     message: str
+    status: bool
     error: Optional[str] = None
-
-ApiCommandEnum = StrEnum(
-    'ApiCommandEnum',
-    names={
-        name: name for name in filter(lambda x : x[0] != '_', _shop_session.shop_api.__dir__())
-    }
-)
-
-SHOP_OBJEC_TYPE_NAMES = _shop_session.model._all_types
-
-SHOP_RELATION_TYPES = [
-    _shop_session.shop_api.GetValidRelationTypes(object_type)
-    for object_type in SHOP_OBJEC_TYPE_NAMES
-]
-
-# flattens
-SHOP_RELATION_TYPES = [e for sub in SHOP_RELATION_TYPES for e in sub ]
-
-ObjectTypeEnum = StrEnum(
-    'ObjectTypeEnum',
-    names={
-        name: name for name in SHOP_OBJEC_TYPE_NAMES
-    }
-)
-
-RelationTypeEnum = StrEnum(
-    'RelationTypeEnum',
-    names={
-        name: name for name in (['default'] + SHOP_RELATION_TYPES)
-    }
-)
-
-RelationDirectionEnum = StrEnum(
-    'RelationDirectionEnum',
-    names={name: name for name in ['both', 'input', 'output']}
-)
 
 class ApiCommands(BaseModel):
     command_types: List[str] = None
@@ -373,13 +382,7 @@ def serialize_model_object_instance(o: Any) -> ObjectInstance:
         }
     )
 
-
 class CommandArguments(BaseModel):
-    options: Optional[List[str]] = None
-    values: Optional[List[str]] = None
-
-
-class Command(str, Enum):
-    start_sim = 'start_sim'
-    set_code = 'set_code'
+    options: List[str] = []
+    values: List[str] = []
 
