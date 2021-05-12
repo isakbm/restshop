@@ -385,7 +385,7 @@ if __name__ == 'main':
 
                 if datatype == 'txy':
 
-                    # convert scalar values to timestamp
+                    # convert scalar values to TimeSeries
                     if type(v) == float or type(v) == int:
                         start_time = shop_session(test_user, session_id).get_time_resolution()['starttime']
                         v = TimeSeries(
@@ -393,7 +393,7 @@ if __name__ == 'main':
                             values=[[v]]
                         )
                     try:
-                        time_series: TimeSeries = v # time_series
+                        time_series: TimeSeries = v
                         # index, values = zip(*time_series.values.items())
                         index, values = time_series.timestamps, np.transpose(time_series.values)
                         df = pd.DataFrame(index=index, data=values)
@@ -403,7 +403,7 @@ if __name__ == 'main':
 
                 elif datatype == 'xy':
                     try:
-                        curve: Curve = v # curve
+                        curve: Curve = v
                         ser = pd.Series(index=curve.x_values, data=curve.y_values)
                         model_object[k].set(ser)
                     except Exception as e:
@@ -411,7 +411,7 @@ if __name__ == 'main':
 
                 elif datatype in ['xy_array', 'xyn']:
                     try:
-                        curves: OrderedDict[float, Curve] = v # OrderedDict[float, Curve]
+                        curves: OrderedDict[float, Curve] = v
                         ser_list = []
                         for ref, curve in curves.items():
                             ser_list += [pd.Series(index=curve.x_values, data=curve.y_values, name=ref)]
